@@ -6,7 +6,7 @@ import * as path from 'path';
 import * as _ from 'lodash';
 import * as fs from 'fs';
 import { PROJECT_CONFIG, KIWI_CONFIG_FILE } from './const';
-
+import translate, { parseMultiple } from 'google-translate-open-api'
 function lookForFiles(dir: string, fileName: string): string {
   const files = fs.readdirSync(dir);
 
@@ -36,7 +36,7 @@ function getProjectConfig() {
   let obj = PROJECT_CONFIG.defaultConfig;
 
   if (configFile && fs.existsSync(configFile)) {
-    obj = JSON.parse(fs.readFileSync(configFile, 'utf8'));
+    obj = _.merge(obj, JSON.parse(fs.readFileSync(configFile, 'utf8')));
   }
   return obj;
 }
@@ -140,17 +140,28 @@ function withTimeout(promise, ms) {
  */
 function translateText(text, toLang) {
   const CONFIG = getProjectConfig();
-  const options = CONFIG.translateOptions;
-  const { translate: googleTranslate } = require('google-translate')(CONFIG.googleApiKey, options);
+  const options = CONFIG.translateOptions || {};
+  console.log('translate options', options)
+  const googleTranslate = translate;
+
   return withTimeout(
     new Promise((resolve, reject) => {
-      googleTranslate(text, 'zh', PROJECT_CONFIG.langMap[toLang], (err, translation) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(translation.translatedText);
+      googleTranslate(text,
+        {
+          ...options,
+          to: PROJECT_CONFIG.langMap[toLang]
+        }).then(res => {
+          let translatedText = res.data[0]
+          if (Array.isArray(text)) {
+            translatedText = parseMultiple(translatedText)
+          }
+          console.log('translate', translatedText)
+          resolve(translatedText)
+        }).catch(error => {
+          console.error('translate error', error)
+          reject(error)
         }
-      });
+      );
     }),
     5000
   );

@@ -18,7 +18,7 @@ function updateLangFiles(keyValue, text, validateDuplicate) {
   if (!_.startsWith(keyValue, 'I18N.')) {
     return;
   }
-
+ 
   const [, filename, ...restPath] = keyValue.split('.');
   const fullKey = restPath.join('.');
   const targetFilename = `${srcLangDir}/${filename}.ts`;
@@ -33,6 +33,7 @@ function updateLangFiles(keyValue, text, validateDuplicate) {
     const obj = mainContent;
 
     if (Object.keys(obj).length === 0) {
+      console.log('langObj', obj)
       console.log(`${filename} 解析失败，该文件包含的文案无法自动补全`);
     }
 
@@ -153,10 +154,14 @@ function hasImportI18N(filePath) {
 function createImportI18N(filePath) {
   const code = readFile(filePath);
   const ast = ts.createSourceFile('', code, ts.ScriptTarget.ES2015, true, ts.ScriptKind.TSX);
+  const isJsFile = _.endsWith(filePath, '.js');
   const isTsFile = _.endsWith(filePath, '.ts');
   const isTsxFile = _.endsWith(filePath, '.tsx');
-
-  if (isTsFile || isTsxFile) {
+  const isVueFile = _.endsWith(filePath, '.vue');
+  if (isVueFile) {
+    console.log('vue ast', ast)
+  }
+  if (isTsFile || isTsxFile || isJsFile) {
     const importStatement = `${CONFIG.importI18N}\n`;
     const pos = ast.getStart(ast, false);
     const updateCode = code.slice(0, pos) + importStatement + code.slice(pos);
@@ -170,7 +175,7 @@ function createImportI18N(filePath) {
  * @param filePath 当前文件路径
  * @param arg  目标字符串对象
  * @param val  目标 key
- * @param validateDuplicate 是否校验文件中已经存在要写入的 key
+ * @param validateDuplicate 校验文件中是否已经存在要写入的 key
  */
 function replaceAndUpdate(filePath, arg, val, validateDuplicate) {
   const code = readFile(filePath);
@@ -188,7 +193,7 @@ function replaceAndUpdate(filePath, arg, val, validateDuplicate) {
       if (isHtmlFile) {
         finalReplaceVal = '{{' + val + '}}';
       } else {
-        finalReplaceVal = '{' + val + '}';
+        finalReplaceVal = 'i18n.t(' + val + ')';
       }
     }
     // 若是模板字符串，看看其中是否包含变量

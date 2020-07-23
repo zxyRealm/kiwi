@@ -10,7 +10,7 @@ import { getProjectConfig, flatten } from '../utils';
 
 const CONFIG = getProjectConfig();
 const LANG_DIR = path.resolve(CONFIG.kiwiDir, CONFIG.srcLang);
-const I18N_GLOB = `${LANG_DIR}/**/*.ts`;
+const I18N_GLOB = `${LANG_DIR}/**/*.{ts,js}`;
 
 /**
  * 获取对应文件的语言
@@ -46,8 +46,8 @@ function getI18N() {
     const filename = curr
       .split('/')
       .pop()
-      .replace(/\.tsx?$/, '');
-    if (filename.replace(/\.tsx?/, '') === 'index') {
+      .replace(/\.(tsx?)|vue|js$/, '');
+    if (filename.replace(/\.(tsx?)|vue|js/, '') === 'index') {
       return prev;
     }
 
@@ -55,6 +55,7 @@ function getI18N() {
     let jsObj = fileContent;
 
     if (Object.keys(jsObj).length === 0) {
+      console.log('lang obj ', jsObj)
       console.log(`\`${curr}\` 解析失败，该文件包含的文案无法自动补全`);
     }
 

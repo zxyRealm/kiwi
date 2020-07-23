@@ -9,6 +9,7 @@ const path = require("path");
 const _ = require("lodash");
 const fs = require("fs");
 const const_1 = require("./const");
+const google_translate_open_api_1 = require("google-translate-open-api");
 function lookForFiles(dir, fileName) {
     const files = fs.readdirSync(dir);
     for (let file of files) {
@@ -37,7 +38,7 @@ function getProjectConfig() {
     const configFile = lookForFiles(rootDir, const_1.KIWI_CONFIG_FILE);
     let obj = const_1.PROJECT_CONFIG.defaultConfig;
     if (configFile && fs.existsSync(configFile)) {
-        obj = JSON.parse(fs.readFileSync(configFile, 'utf8'));
+        obj = _.merge(obj, JSON.parse(fs.readFileSync(configFile, 'utf8')));
     }
     return obj;
 }
@@ -137,16 +138,20 @@ exports.withTimeout = withTimeout;
  */
 function translateText(text, toLang) {
     const CONFIG = getProjectConfig();
-    const options = CONFIG.translateOptions;
-    const { translate: googleTranslate } = require('google-translate')(CONFIG.googleApiKey, options);
+    const options = CONFIG.translateOptions || {};
+    console.log('translate options', options);
+    const googleTranslate = google_translate_open_api_1.default;
     return withTimeout(new Promise((resolve, reject) => {
-        googleTranslate(text, 'zh', const_1.PROJECT_CONFIG.langMap[toLang], (err, translation) => {
-            if (err) {
-                reject(err);
+        googleTranslate(text, Object.assign(Object.assign({}, options), { to: const_1.PROJECT_CONFIG.langMap[toLang] })).then(res => {
+            let translatedText = res.data[0];
+            if (Array.isArray(text)) {
+                translatedText = google_translate_open_api_1.parseMultiple(translatedText);
             }
-            else {
-                resolve(translation.translatedText);
-            }
+            console.log('translate', translatedText);
+            resolve(translatedText);
+        }).catch(error => {
+            console.error('translate error', error);
+            reject(error);
         });
     }), 5000);
 }

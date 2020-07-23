@@ -260,6 +260,7 @@ function findTextInVue(code, fileName) {
   const { document } = activeTextEditor;
   const vueObejct = compilerVue.compile(code.toString(),{outputSourceRange: true});
   let vueAst = vueObejct.ast
+  // 查询模板字符串中文案，替换并翻译
   let expressTemp = findVueText(vueAst)
   expressTemp.forEach(item=>{
     const nodeValue = code.slice(item.start, item.end);
@@ -273,6 +274,7 @@ function findTextInVue(code, fileName) {
           isString: true
         });     
   })
+  // 处理 js 文件中文案并翻译
   let outcode = vueObejct.render.toString().replace('with(this)', 'function a()');
   let vueTemp = transerI18n(outcode, 'as.vue', null);
   /**删除所有的html中的头部空格 */
@@ -314,6 +316,8 @@ function findTextInVue(code, fileName) {
     });
     if (canBe) return item;
   });
+  // vue-template-complier 只是针对 Vue 文件中 template 部分进行转换
+  // js 部分需要单独进行处理，此处是将源码还原成单文件组件，提取 script 中内容进行处理
   const sfc = compilerVue.parseComponent(code.toString());
   return matchesTempResult.concat(findTextInVueTs(sfc.script.content, fileName, sfc.script.start));
 }

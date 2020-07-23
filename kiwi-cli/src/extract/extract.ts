@@ -23,7 +23,7 @@ function findAllChineseText(dir: string) {
   const dirPath = path.resolve(process.cwd(), dir);
   const files = getSpecifiedFiles(dirPath, CONFIG.ignoreDir, CONFIG.ignoreFile);
   const filterFiles = files.filter(file => {
-    return file.endsWith('.ts') || file.endsWith('.tsx');
+    return file.endsWith('.ts') || file.endsWith('.tsx') || file.endsWith('.vue') || file.endsWith('.js');
   });
   const allTexts = filterFiles.reduce((pre, file) => {
     const code = readFile(file);
@@ -46,10 +46,10 @@ function findAllChineseText(dir: string) {
  * @param {dirPath} 文件夹路径
  */
 function extractAll(dirPath?: string) {
-  if (!CONFIG.googleApiKey) {
-    console.log('请配置googleApiKey');
-    return;
-  }
+  // if (!CONFIG.googleApiKey) {
+  //   console.log('请配置googleApiKey');
+  //   return;
+  // }
 
   const dir = dirPath || './';
   const allTargetStrs = findAllChineseText(dir);
@@ -93,9 +93,9 @@ function extractAll(dirPath?: string) {
       const reg = /[^a-zA-Z\x00-\xff]+/g;
       const findText = curr.text.match(reg);
       const transText = findText ? findText.join('').slice(0, 4) : '中文符号';
+      console.log('find text', findText, transText)
       return prev.concat(translateText(transText, 'en_US'));
     }, []);
-
     Promise.all(translatePromises)
       .then(([...translateTexts]) => {
         const replaceableStrs = targetStrs.reduce((prev, curr, i) => {

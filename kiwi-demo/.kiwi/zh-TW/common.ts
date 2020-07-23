@@ -1,3 +1,4 @@
+import I18N from 'src/utils/I18N';
 export default {
-  "test": "測試"
+  "test": I18N.zh_TW.common.CbLV
 }

@@ -4,5 +4,8 @@
     "en-US",
     "zh-TW"
   ],
+  "translateOptions": {
+    "tld": "cn"
+  },
   "googleApiKey": ""
 }

@@ -1,3 +1,4 @@
+import I18N from 'src/utils/I18N';
 export default {
-  test: '测试'
+  test: I18N.common.test
 }

@@ -18,7 +18,9 @@ function exportMessages(file, lang) {
     const langs = lang ? [lang] : CONFIG.distLangs;
     langs.map(lang => {
         const allMessages = utils_1.getAllMessages(CONFIG.srcLang);
+        console.log('all messages', allMessages);
         const existingTranslations = utils_1.getAllMessages(lang, (message, key) => !/[\u4E00-\u9FA5]/.test(allMessages[key]) || allMessages[key] !== message);
+        console.log('existing translate', existingTranslations);
         const messagesToTranslate = Object.keys(allMessages)
             .filter(key => !existingTranslations.hasOwnProperty(key))
             .map(key => {

@@ -13,7 +13,7 @@ function findUnUsed() {
     const srcLangDir = path.resolve(utils_1.getKiwiDir(), 'zh-CN');
     let files = fs.readdirSync(srcLangDir);
     files = files.filter(file => file.endsWith('.ts') && file !== 'index.ts');
-    const unUnsedKeys = [];
+    const unUsedKeys = [];
     files.map(file => {
         const srcFile = path.resolve(srcLangDir, file);
         const { default: messages } = require(srcFile);
@@ -22,11 +22,11 @@ function findUnUsed() {
             const key = `I18N.${filename}.${path}`;
             const hasKey = recursiveReadFile('./src', key);
             if (!hasKey) {
-                unUnsedKeys.push(key);
+                unUsedKeys.push(key);
             }
         });
     });
-    console.log(unUnsedKeys, 'unUnsedKeys');
+    console.log(unUsedKeys, 'unUsedKeys');
 }
 exports.findUnUsed = findUnUsed;
 /**
