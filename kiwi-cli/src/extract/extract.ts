@@ -93,7 +93,7 @@ function extractAll(dirPath?: string) {
       const reg = /[^a-zA-Z\x00-\xff]+/g;
       const findText = curr.text.match(reg);
       const transText = findText ? findText.join('').slice(0, 4) : '中文符号';
-      console.log('find text', findText, transText)
+      // console.log('find text', findText, transText)
       return prev.concat(translateText(transText, 'en_US'));
     }, []);
     Promise.all(translatePromises)
@@ -149,7 +149,7 @@ function extractAll(dirPath?: string) {
         replaceableStrs
           .reduce((prev, obj) => {
             return prev.then(() => {
-              return replaceAndUpdate(currentFilename, obj.target, `I18N.${obj.key}`, false);
+              return replaceAndUpdate(currentFilename, obj.target, `${obj.key}`, false);
             });
           }, Promise.resolve())
           .then(() => {

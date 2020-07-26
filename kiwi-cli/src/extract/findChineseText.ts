@@ -222,12 +222,10 @@ function findTextInVue(code: string, fileName: string) {
       isString: true
     });     
   })
-  console.log('express', expressTemp)
   const outCode = vueObject.render.toString().replace('with(this)', 'function a()')
   // 将 vue-template-complier 编译得到的 render 字符串通过 @babel/core 再编译，运用 babel 对象中 StringLiteral 类型，配合自定插件进行文案提取
   const vueTemp = transferI18n(outCode, 'as.vue')
 
-  console.log('ast--', vueAst, vueTemp)
   vueTemp.forEach(item => {
     let items = item.replace(/\{/g,'\\{').replace(/\}/g,'\\}').replace(/\$/g,'\\$').replace(/\(/g,'\\(').replace(/\)/g,'\\)').replace(/\+/g,'\\+').replace(/\*/g,'\\*').replace(/\^/g,'\\^')
     const reg1 = new RegExp(items, 'g')
@@ -236,11 +234,9 @@ function findTextInVue(code: string, fileName: string) {
       const res = result
       let last = reg1.lastIndex
       last = last - (res[0].length - res[0].trimRight().length)
-      console.log('last', reg1.lastIndex, res, res[0].trimRight().length)
       const isString = checkCloseLabel(code, res.index - 1, last, '"') ||
       checkCloseLabel(code, res.index - 1, last, "'") ||
       checkCloseLabel(code, res.index - 1, last, '>', '<') ? true : false
-      console.log(isString, res[0], code.substr(res.index - 1, 2), code.substr(last, 2))
       matches.push({
         range: {
           start: res.index,

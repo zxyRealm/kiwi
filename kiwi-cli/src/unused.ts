@@ -19,14 +19,13 @@ function findUnUsed() {
     const filename = path.basename(file, '.ts');
 
     traverse(messages, (text, path) => {
-      const key = `I18N.${filename}.${path}`;
+      const key = `i18n_${filename}_${path}`;
       const hasKey = recursiveReadFile('./src', key);
       if (!hasKey) {
         unUsedKeys.push(key);
       }
     });
   });
-  console.log(unUsedKeys, 'unUsedKeys');
 }
 /**
  * 递归查找文件

@@ -32,7 +32,6 @@ function javascriptI18n(code, filename) {
   let arr = [];
   let visitor = {
     StringLiteral(path) {
-      console.log('path', path.node )
       if (path.node.value.match(DOUBLE_BYTE_REGEX)) {
         const text = (path.node.value || '').trim()
         text && arr.push(text);

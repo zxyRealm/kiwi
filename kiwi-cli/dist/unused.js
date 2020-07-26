@@ -19,14 +19,13 @@ function findUnUsed() {
         const { default: messages } = require(srcFile);
         const filename = path.basename(file, '.ts');
         utils_1.traverse(messages, (text, path) => {
-            const key = `I18N.${filename}.${path}`;
+            const key = `i18n_${filename}_${path}`;
             const hasKey = recursiveReadFile('./src', key);
             if (!hasKey) {
                 unUsedKeys.push(key);
             }
         });
     });
-    console.log(unUsedKeys, 'unUsedKeys');
 }
 exports.findUnUsed = findUnUsed;
 /**

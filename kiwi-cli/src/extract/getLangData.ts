@@ -46,8 +46,8 @@ function getI18N() {
     const filename = curr
       .split('/')
       .pop()
-      .replace(/\.(tsx?)|vue|js$/, '');
-    if (filename.replace(/\.(tsx?)|vue|js/, '') === 'index') {
+      .replace(/\.(tsx?|vue|js)$/, '');
+    if (filename.replace(/\.(tsx?|vue|js)/, '') === 'index') {
       return prev;
     }
 

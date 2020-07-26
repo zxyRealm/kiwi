@@ -15,13 +15,13 @@ const CONFIG = getProjectConfig();
 const srcLangDir = getLangDir(CONFIG.srcLang);
 
 function updateLangFiles(keyValue, text, validateDuplicate) {
-  if (!_.startsWith(keyValue, 'I18N.')) {
+  if (!_.startsWith(keyValue, 'i18n.') && !_.startsWith(keyValue, 'i18n_')) {
     return;
   }
  
   const [, filename, ...restPath] = keyValue.split('.');
   const fullKey = restPath.join('.');
-  const targetFilename = `${srcLangDir}/${filename}.ts`;
+  const targetFilename = `${srcLangDir}/${filename}.js`;
 
   if (!fs.existsSync(targetFilename)) {
     fs.writeFileSync(targetFilename, generateNewLangFile(fullKey, text));
@@ -118,7 +118,7 @@ function hasImportI18N(filePath) {
       // import I18N from 'src/utils/I18N';
       if (importClause.kind === ts.SyntaxKind.ImportClause) {
         if (importClause.name) {
-          if (importClause.name.escapedText === 'I18N') {
+          if (importClause.name.escapedText === 'i18n') {
             hasImportI18N = true;
           }
         } else {
@@ -126,14 +126,14 @@ function hasImportI18N(filePath) {
           // import { I18N } from 'src/utils/I18N';
           if (namedBindings.kind === ts.SyntaxKind.NamedImports) {
             namedBindings.elements.forEach(element => {
-              if (element.kind === ts.SyntaxKind.ImportSpecifier && _.get(element, 'name.escapedText') === 'I18N') {
+              if (element.kind === ts.SyntaxKind.ImportSpecifier && _.get(element, 'name.escapedText') === 'i18n') {
                 hasImportI18N = true;
               }
             });
           }
           // import * as I18N from 'src/utils/I18N';
           if (namedBindings.kind === ts.SyntaxKind.NamespaceImport) {
-            if (_.get(namedBindings, 'name.escapedText') === 'I18N') {
+            if (_.get(namedBindings, 'name.escapedText') === 'i18n') {
               hasImportI18N = true;
             }
           }
@@ -158,15 +158,18 @@ function createImportI18N(filePath) {
   const isTsFile = _.endsWith(filePath, '.ts');
   const isTsxFile = _.endsWith(filePath, '.tsx');
   const isVueFile = _.endsWith(filePath, '.vue');
+  const importStatement = `${CONFIG.importI18N}\n`;
   if (isVueFile) {
-    console.log('vue ast', ast)
+    // scriptKind:
+    console.log('vue ast', importStatement, ast)
   }
-  if (isTsFile || isTsxFile || isJsFile) {
-    const importStatement = `${CONFIG.importI18N}\n`;
+  if (isTsFile || isTsxFile || isJsFile || isVueFile) {
     const pos = ast.getStart(ast, false);
     const updateCode = code.slice(0, pos) + importStatement + code.slice(pos);
 
     return updateCode;
+  } else if (isVueFile) {
+
   }
 }
 
@@ -184,18 +187,34 @@ function replaceAndUpdate(filePath, arg, val, validateDuplicate) {
   let finalReplaceText = arg.text;
   const { start, end } = arg.range;
   // 若是字符串，删掉两侧的引号
+  console.log('arg text', arg)
   if (arg.isString) {
     // 如果引号左侧是 等号，则可能是 jsx 的 props，此时要替换成 {
     const preTextStart = start - 1;
+    ''.slice()
     const [last2Char, last1Char] = code.slice(preTextStart, start + 1).split('');
     let finalReplaceVal = val;
-    if (last2Char === '=') {
-      if (isHtmlFile) {
-        finalReplaceVal = '{{' + val + '}}';
-      } else {
-        finalReplaceVal = 'i18n.t(' + val + ')';
-      }
+    console.log('last char', last2Char)
+    switch (last2Char) {
+      case '=':
+        if (isHtmlFile) {
+          finalReplaceVal = '{{$t(\'' + val + '\')}}';
+        } else {
+          finalReplaceVal = 'i18n.t(\'' + val + '\')';
+        }
+        break
+      case '"':
+      case '\'':
+        finalReplaceVal = `$t('${val}')`
+        break
+      case '>':
+        finalReplaceVal = `{{$t('${val}')}}`
+        break
+        case '(':
+          // finalReplaceVal = `${val}`
+          break
     }
+
     // 若是模板字符串，看看其中是否包含变量
     if (last1Char === '`') {
       const varInStr = arg.text.match(/(\$\{[^\}]+?\})/g);
@@ -213,11 +232,11 @@ function replaceAndUpdate(filePath, arg, val, validateDuplicate) {
 
     newCode = `${code.slice(0, start)}${finalReplaceVal}${code.slice(end)}`;
   } else {
-    if (isHtmlFile) {
-      newCode = `${code.slice(0, start)}{{${val}}}${code.slice(end)}`;
-    } else {
-      newCode = `${code.slice(0, start)}{${val}}${code.slice(end)}`;
-    }
+    // if (isHtmlFile) {
+      newCode = `${code.slice(0, start)}\${$t('${val}')}${code.slice(end)}`;
+    // } else {
+      // newCode = `${code.slice(0, start)}{{${val}}${code.slice(end)}`;
+    // }
   }
 
   try {
