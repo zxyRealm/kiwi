@@ -91,7 +91,7 @@ function getAllMessages(lang, filter = (message, key) => true) {
         const fileNameWithoutExt = path.basename(file).split('.')[0];
         const flattenedMessages = {};
         traverse(messages, (message, path) => {
-            const key = fileNameWithoutExt + '.' + path;
+            const key = fileNameWithoutExt + '_' + path;
             if (filter(message, key)) {
                 flattenedMessages[key] = message;
             }

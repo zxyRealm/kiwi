@@ -13,6 +13,7 @@ import { getSuggestLangObj } from './getLangData';
 import { translateText, findMatchKey, findMatchValue } from '../utils';
 import { replaceAndUpdate, hasImportI18N, createImportI18N } from './replace';
 import { getProjectConfig } from '../utils';
+import { name } from 'commander';
 
 const CONFIG = getProjectConfig();
 
@@ -58,9 +59,11 @@ function extractAll(dirPath?: string) {
     console.log('没有发现可替换的文案！');
     return;
   }
-
+  console.log('chinese list', allTargetStrs)
   allTargetStrs.forEach(item => {
+    // 当前文件名
     const currentFilename = item.file;
+    // 文件中文案信息
     const targetStrs = item.texts;
     const suggestPageRegex = /\/pages\/\w+\/([^\/]+)\/([^\/\.]+)/;
 
@@ -76,7 +79,18 @@ function extractAll(dirPath?: string) {
     }
     /** 如果没有匹配到 Key */
     if (!(suggestion && suggestion.length)) {
+      // slash 路径转换工具
+      /* Example
+      * const string = path.join('foo', 'bar');
+      * Unix    => foo/bar
+      * Windows => foo\\bar
+      * slash(string)
+      * Unix    => foo/bar
+      * window  => foo/bar
+      */
+
       const names = slash(currentFilename).split('/');
+      console.log('slash -----', currentFilename, names)
       const fileName = _.last(names) as any;
       const fileKey = fileName.split('.')[0].replace(new RegExp('-', 'g'), '_');
       const dir = names[names.length - 2].replace(new RegExp('-', 'g'), '_');

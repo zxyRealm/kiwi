@@ -92,7 +92,7 @@ function getAllMessages(lang: string, filter = (message: string, key: string) =>
     const flattenedMessages = {};
 
     traverse(messages, (message, path) => {
-      const key = fileNameWithoutExt + '.' + path;
+      const key = fileNameWithoutExt + '_' + path;
       if (filter(message, key)) {
         flattenedMessages[key] = message;
       }

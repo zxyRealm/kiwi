@@ -161,7 +161,7 @@ function createImportI18N(filePath) {
   const importStatement = `${CONFIG.importI18N}\n`;
   if (isVueFile) {
     // scriptKind:
-    console.log('vue ast', importStatement, ast)
+    // console.log('vue ast', importStatement, ast)
   }
   if (isTsFile || isTsxFile || isJsFile || isVueFile) {
     const pos = ast.getStart(ast, false);
