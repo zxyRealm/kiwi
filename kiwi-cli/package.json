@@ -40,6 +40,7 @@
     "google-translate-open-api": "^1.3.5",
     "inquirer": "^5.2.0",
     "lodash": "^4.17.11",
+    "node-dir": "^0.1.17",
     "ora": "^3.0.0",
     "prettier": "^1.16.4",
     "randomstring": "^1.1.5",

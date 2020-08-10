@@ -7,6 +7,7 @@ import * as _ from 'lodash';
 import * as fs from 'fs';
 import { PROJECT_CONFIG, KIWI_CONFIG_FILE } from './const';
 import translate, { parseMultiple } from 'google-translate-open-api'
+
 function lookForFiles(dir: string, fileName: string): string {
   const files = fs.readdirSync(dir);
 
@@ -68,7 +69,7 @@ function traverse(obj, cb) {
   function traverseInner(obj, cb, path) {
     _.forEach(obj, (val, key) => {
       if (typeof val === 'string') {
-        cb(val, [...path, key].join('.'));
+        cb(val, [...path, key].join('_'));
       } else if (typeof val === 'object' && val !== null) {
         traverseInner(val, cb, [...path, key]);
       }
@@ -88,7 +89,7 @@ function getAllMessages(lang: string, filter = (message: string, key: string) =>
 
   const allMessages = files.map(file => {
     const { default: messages } = require(file);
-    const fileNameWithoutExt = path.basename(file).split('.')[0];
+    const fileNameWithoutExt = path.basename(file).split('_')[0];
     const flattenedMessages = {};
 
     traverse(messages, (message, path) => {
@@ -141,7 +142,6 @@ function withTimeout(promise, ms) {
 function translateText(text, toLang) {
   const CONFIG = getProjectConfig();
   const options = CONFIG.translateOptions || {};
-  console.log('translate options', options)
   const googleTranslate = translate;
 
   return withTimeout(
@@ -155,7 +155,6 @@ function translateText(text, toLang) {
           if (Array.isArray(text)) {
             translatedText = parseMultiple(translatedText)
           }
-          console.log('translate', translatedText)
           resolve(translatedText)
         }).catch(error => {
           console.error('translate error', error)
@@ -187,7 +186,7 @@ function findMatchValue(langObj, key) {
  * @param prefix
  */
 function flatten(obj, prefix = '') {
-  var propName = prefix ? prefix + '.' : '',
+  var propName = prefix ? prefix + '_' : '',
     ret = {};
 
   for (var attr in obj) {
@@ -203,6 +202,14 @@ function flatten(obj, prefix = '') {
   return ret;
 }
 
+// 指定内容替换成占位符
+// 目的是去除已经匹配到的中文 
+function replaceOccupyStr(str: string, regexp: RegExp, replacement?: string) {
+  return str && str.replace(regexp, (...arg) => {
+    return arg[0].split('').map(() => replacement || 'A').join('')
+  })
+}
+
 export {
   getKiwiDir,
   getLangDir,
@@ -215,5 +222,6 @@ export {
   findMatchKey,
   findMatchValue,
   flatten,
-  lookForFiles
+  lookForFiles,
+  replaceOccupyStr
 };

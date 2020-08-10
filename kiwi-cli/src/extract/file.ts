@@ -5,9 +5,9 @@
 
 import * as path from 'path';
 import * as _ from 'lodash';
-import * as fs from 'fs';
-
-/**
+import * as fs from 'fs-extra';
+import * as dirs from 'node-dir'
+/*
  * 获取文件夹下符合要求的所有文件
  * @function getSpecifiedFiles
  * @param  {string} dir 路径
@@ -39,23 +39,26 @@ function getSpecifiedFiles(dir, ignoreDirectory = '', ignoreFile = '') {
   }, []);
 }
 
-/**
+/*
  * 读取文件
  * @param fileName
  */
 function readFile(fileName) {
   if (fs.existsSync(fileName)) {
-    return fs.readFileSync(fileName, 'utf-8');
+    return fs.readFileSync(fileName, {
+      encoding: 'utf8'
+    });
   }
 }
 
 /**
- * 读取文件
- * @param fileName
+ * 写入文件
+ * @param filePath 文件路径
  */
 function writeFile(filePath, file) {
-  if (fs.existsSync(filePath)) {
-    fs.writeFileSync(filePath, file);
+  console.log('filePath', filePath)
+  if (file) {
+    fs.outputFileSync(filePath, file);
   }
 }
 

@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.lookForFiles = exports.flatten = exports.findMatchValue = exports.findMatchKey = exports.translateText = exports.getProjectConfig = exports.getAllMessages = exports.withTimeout = exports.retry = exports.traverse = exports.getLangDir = exports.getKiwiDir = void 0;
+exports.replaceOccupyStr = exports.lookForFiles = exports.flatten = exports.findMatchValue = exports.findMatchKey = exports.translateText = exports.getProjectConfig = exports.getAllMessages = exports.withTimeout = exports.retry = exports.traverse = exports.getLangDir = exports.getKiwiDir = void 0;
 /**
  * @author linhuiw
  * @desc 工具方法
@@ -69,7 +69,7 @@ function traverse(obj, cb) {
     function traverseInner(obj, cb, path) {
         _.forEach(obj, (val, key) => {
             if (typeof val === 'string') {
-                cb(val, [...path, key].join('.'));
+                cb(val, [...path, key].join('_'));
             }
             else if (typeof val === 'object' && val !== null) {
                 traverseInner(val, cb, [...path, key]);
@@ -88,7 +88,7 @@ function getAllMessages(lang, filter = (message, key) => true) {
     files = files.filter(file => file.endsWith('.ts') && file !== 'index.ts').map(file => path.resolve(srcLangDir, file));
     const allMessages = files.map(file => {
         const { default: messages } = require(file);
-        const fileNameWithoutExt = path.basename(file).split('.')[0];
+        const fileNameWithoutExt = path.basename(file).split('_')[0];
         const flattenedMessages = {};
         traverse(messages, (message, path) => {
             const key = fileNameWithoutExt + '_' + path;
@@ -139,7 +139,6 @@ exports.withTimeout = withTimeout;
 function translateText(text, toLang) {
     const CONFIG = getProjectConfig();
     const options = CONFIG.translateOptions || {};
-    console.log('translate options', options);
     const googleTranslate = google_translate_open_api_1.default;
     return withTimeout(new Promise((resolve, reject) => {
         googleTranslate(text, Object.assign(Object.assign({}, options), { to: const_1.PROJECT_CONFIG.langMap[toLang] })).then(res => {
@@ -147,7 +146,6 @@ function translateText(text, toLang) {
             if (Array.isArray(text)) {
                 translatedText = google_translate_open_api_1.parseMultiple(translatedText);
             }
-            console.log('translate', translatedText);
             resolve(translatedText);
         }).catch(error => {
             console.error('translate error', error);
@@ -175,7 +173,7 @@ exports.findMatchValue = findMatchValue;
  * @param prefix
  */
 function flatten(obj, prefix = '') {
-    var propName = prefix ? prefix + '.' : '', ret = {};
+    var propName = prefix ? prefix + '_' : '', ret = {};
     for (var attr in obj) {
         if (_.isArray(obj[attr])) {
             var len = obj[attr].length;
@@ -191,4 +189,12 @@ function flatten(obj, prefix = '') {
     return ret;
 }
 exports.flatten = flatten;
+// 指定内容替换成占位符
+// 目的是去除已经匹配到的中文 
+function replaceOccupyStr(str, regexp, replacement) {
+    return str && str.replace(regexp, (...arg) => {
+        return arg[0].split('').map(() => replacement || 'A').join('');
+    });
+}
+exports.replaceOccupyStr = replaceOccupyStr;
 //# sourceMappingURL=utils.js.map

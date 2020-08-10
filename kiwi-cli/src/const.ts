@@ -7,6 +7,10 @@ const fs = require('fs');
 
 export const KIWI_CONFIG_FILE = 'kiwi-config.json';
 
+export const I18N_GLOBAL_PROPERTY = '$t' || 'i18n.t'
+
+export const matchExpReg = (flags?: string) => new RegExp(`\\${I18N_GLOBAL_PROPERTY}\\((\'|"|\`)(.*?)(\'|"|\`)`, flags)
+
 export const PROJECT_CONFIG = {
   dir: './.kiwi',
   configFile: `./.kiwi/${KIWI_CONFIG_FILE}`,
@@ -92,6 +96,7 @@ export default Object.assign({}, {
 // const LANG_PREFIX = getDefaultDir();
 // const DIR_ADAPTOR = dirAdaptor();
 // const I18N_GLOB = `${LANG_PREFIX}**/*.ts`;
+
 const DOUBLE_BYTE_REGEX = /[^\x00-\xff]/g;
 
 export { DOUBLE_BYTE_REGEX }

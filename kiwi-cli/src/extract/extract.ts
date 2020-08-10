@@ -55,28 +55,24 @@ function extractAll(dirPath?: string) {
   const dir = dirPath || './';
   const allTargetStrs = findAllChineseText(dir);
 
-  if (allTargetStrs.length === 0) {
+  if (!allTargetStrs.length) {
     console.log('没有发现可替换的文案！');
     return;
   }
-  console.log('chinese list', allTargetStrs)
-  allTargetStrs.forEach(item => {
+  // console.log('chinese list', allTargetStrs)
+  const finalLangObj = getSuggestLangObj()
+  // console.log('lang json', finalLangObj)
+  allTargetStrs.forEach(async item => {
     // 当前文件名
     const currentFilename = item.file;
     // 文件中文案信息
     const targetStrs = item.texts;
-    const suggestPageRegex = /\/pages\/\w+\/([^\/]+)\/([^\/\.]+)/;
-
-    let suggestion = [];
-    const finalLangObj = getSuggestLangObj();
+    console.log('strs ', targetStrs)
+    const pathList = slash(currentFilename.replace(/(.+)\.[a-zA-Z]+$/, '$1')).split('/')
+    let suggestion = pathList.slice(pathList.findIndex(i => i === 'src') + 1);
+    // const finalLangObj = getSuggestLangObj();
     const virtualMemory = {};
-
-    if (currentFilename.includes('/pages/')) {
-      suggestion = currentFilename.match(suggestPageRegex);
-    }
-    if (suggestion) {
-      suggestion.shift();
-    }
+    // console.log(finalLangObj)
     /** 如果没有匹配到 Key */
     if (!(suggestion && suggestion.length)) {
       // slash 路径转换工具
@@ -90,100 +86,102 @@ function extractAll(dirPath?: string) {
       */
 
       const names = slash(currentFilename).split('/');
-      console.log('slash -----', currentFilename, names)
       const fileName = _.last(names) as any;
       const fileKey = fileName.split('.')[0].replace(new RegExp('-', 'g'), '_');
       const dir = names[names.length - 2].replace(new RegExp('-', 'g'), '_');
-      if (dir === fileKey) {
-        suggestion = [dir];
-      } else {
-        suggestion = [dir, fileKey];
-      }
+      // if (dir === fileKey) {
+      //   suggestion = [dir];
+      // } else {
+      //   suggestion = [dir, fileKey];
+      // }
     }
-
     // 翻译中文文案
     const translatePromises = targetStrs.reduce((prev, curr) => {
       // 避免翻译的字符里包含数字或者特殊字符等情况
       const reg = /[^a-zA-Z\x00-\xff]+/g;
       const findText = curr.text.match(reg);
-      const transText = findText ? findText.join('').slice(0, 4) : '中文符号';
-      // console.log('find text', findText, transText)
+      const transText = findText ? findText.join('').slice(0, 6) : '中文符号';
       return prev.concat(translateText(transText, 'en_US'));
     }, []);
-    Promise.all(translatePromises)
-      .then(([...translateTexts]) => {
-        const replaceableStrs = targetStrs.reduce((prev, curr, i) => {
-          const key = findMatchKey(finalLangObj, curr.text);
-          if (!virtualMemory[curr.text]) {
-            if (key) {
-              virtualMemory[curr.text] = key;
+    try {
+      await Promise.all(translatePromises)
+        .then(([...translateTexts]) => {
+          const replaceableStrs = targetStrs.reduce((prev, curr, i) => {
+            const key = findMatchKey(finalLangObj, curr.text);
+            console.log(key, virtualMemory[curr.text])
+            if (!virtualMemory[curr.text]) {
+              if (key) {
+                virtualMemory[curr.text] = key;
+                return prev.concat({
+                  target: curr,
+                  key
+                });
+              }
+              const uuidKey = `${randomstring.generate({
+                length: 4,
+                charset: 'qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM'
+              })}`;
+              const handleText = translateTexts[i] ? _.camelCase(translateTexts[i] as string) : uuidKey;
+              const reg = /[a-zA-Z]+/;
+              // 对于翻译后的英文再次过滤，只保留英文字符
+              const purifyText = handleText
+                .split('')
+                .filter(letter => reg.test(letter))
+                .join('');
+              const transText = purifyText || 'chineseSymbols';
+              let transKey = `${suggestion.length ? suggestion.join('_') + '_' : ''}${transText}`;
+              let occurTime = 1;
+              // 防止出现前四位相同但是整体文案不同的情况
+              while (
+                findMatchValue(finalLangObj, transKey) !== curr.text &&
+                _.keys(finalLangObj).includes(`${transKey}${occurTime >= 2 ? occurTime : ''}`)
+              ) {
+                occurTime++;
+              }
+              if (occurTime >= 2) {
+                transKey = `${transKey}${occurTime}`;
+              }
+              virtualMemory[curr.text] = transKey;
+              finalLangObj[transKey] = curr.text;
+              console.log('current ', transKey)
               return prev.concat({
                 target: curr,
-                key
+                key: transKey
+              });
+            } else {
+              return prev.concat({
+                target: curr,
+                key: virtualMemory[curr.text]
               });
             }
-            const uuidKey = `${randomstring.generate({
-              length: 4,
-              charset: 'qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM'
-            })}`;
-            const handleText = translateTexts[i] ? _.camelCase(translateTexts[i] as string) : uuidKey;
-            const reg = /[a-zA-Z]+/;
-            // 对于翻译后的英文再次过滤，只保留英文字符
-            const purifyText = handleText
-              .split('')
-              .filter(letter => reg.test(letter))
-              .join('');
-            const transText = purifyText || 'chineseSymbols';
-            let transKey = `${suggestion.length ? suggestion.join('.') + '.' : ''}${transText}`;
-            let occurTime = 1;
-            // 防止出现前四位相同但是整体文案不同的情况
-            while (
-              findMatchValue(finalLangObj, transKey) !== curr.text &&
-              _.keys(finalLangObj).includes(`${transKey}${occurTime >= 2 ? occurTime : ''}`)
-            ) {
-              occurTime++;
-            }
-            if (occurTime >= 2) {
-              transKey = `${transKey}${occurTime}`;
-            }
-            virtualMemory[curr.text] = transKey;
-            finalLangObj[transKey] = curr.text;
-            return prev.concat({
-              target: curr,
-              key: transKey
+          }, []);
+          replaceableStrs
+            .reduce((prev, obj) => {
+              return prev.then(() => {
+                return replaceAndUpdate(currentFilename, obj.target, `${obj.key}`, false);
+              });
+            }, Promise.resolve())
+            .then(() => {
+              // 添加 import I18N
+              if (!hasImportI18N(currentFilename)) {
+                const code = createImportI18N(currentFilename);
+
+                writeFile(currentFilename, code);
+              }
+              console.log(`${currentFilename}替换完成！`);
+            })
+            .catch(e => {
+              console.log(e.message);
             });
-          } else {
-            return prev.concat({
-              target: curr,
-              key: virtualMemory[curr.text]
-            });
+        })
+        .catch(err => {
+          if (err) {
+            console.log('google翻译出问题了...');
           }
-        }, []);
-
-        replaceableStrs
-          .reduce((prev, obj) => {
-            return prev.then(() => {
-              return replaceAndUpdate(currentFilename, obj.target, `${obj.key}`, false);
-            });
-          }, Promise.resolve())
-          .then(() => {
-            // 添加 import I18N
-            if (!hasImportI18N(currentFilename)) {
-              const code = createImportI18N(currentFilename);
-
-              writeFile(currentFilename, code);
-            }
-            console.log(`${currentFilename}替换完成！`);
-          })
-          .catch(e => {
-            console.log(e.message);
-          });
-      })
-      .catch(err => {
-        if (err) {
-          console.log('google翻译出问题了...');
-        }
-      });
+        });
+    } catch (error) {
+      console.error(error)
+    }
   });
 }
 

@@ -1,12 +1,14 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.DOUBLE_BYTE_REGEX = exports.PROJECT_CONFIG = exports.KIWI_CONFIG_FILE = void 0;
+exports.DOUBLE_BYTE_REGEX = exports.PROJECT_CONFIG = exports.matchExpReg = exports.I18N_GLOBAL_PROPERTY = exports.KIWI_CONFIG_FILE = void 0;
 /**
  * @author linhuiw
  * @desc 项目配置文件配置信息
  */
 const fs = require('fs');
 exports.KIWI_CONFIG_FILE = 'kiwi-config.json';
+exports.I18N_GLOBAL_PROPERTY = '$t' || 'i18n.t';
+exports.matchExpReg = (flags) => new RegExp(`\\${exports.I18N_GLOBAL_PROPERTY}\\((\'|"|\`)(.*?)(\'|"|\`)`, flags);
 exports.PROJECT_CONFIG = {
     dir: './.kiwi',
     configFile: `./.kiwi/${exports.KIWI_CONFIG_FILE}`,
