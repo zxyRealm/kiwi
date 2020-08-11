@@ -3,6 +3,7 @@
 /reports
 /built
 /tmp
+dist/
 .nyc_output/
 .awcache
 .DS_Store
