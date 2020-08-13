@@ -301,7 +301,6 @@ function findTextInVue(code: string, filename: string) {
       text: item.text.replace(repSpace1, '&ensp;').replace(repSpace2, '&emsp;').replace(repSpace3, '&nbsp;')
     }
   }))
-  console.log('text', code.substring(503, 516).trim())
   return matches
 }
 

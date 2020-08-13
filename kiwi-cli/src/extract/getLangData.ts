@@ -79,7 +79,6 @@ function getI18N() {
       ...jsObj
     };
   }, {});
-  console.log(langObj)
   return langObj;
 }
 

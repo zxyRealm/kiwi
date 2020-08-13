@@ -35,7 +35,6 @@ function updateLangFiles(keyValue, text, validateDuplicate, filePath) {
   if (!isVueFile && !_.startsWith(keyValue, 'I18N.')) {
     return;
   }
-  console.log('update lang', keyValue, text, fs.existsSync(targetFilename))
   if (!fs.existsSync(targetFilename)) {
     // console.log('write FILE', )
     fs.outputFileSync(targetFilename, generateNewLangFile(fullKey, text));
@@ -189,7 +188,6 @@ function createImportI18N(filePath) {
   if (isVueFile) {
     const sfc = vueCompiler.parseComponent(code.toString());
     pos = sfc.script.start
-    console.log('script', code.slice(pos - 10, pos + 10))
   }
   const updateCode = code.slice(0, pos) + importStatement + code.slice(pos);
   return updateCode;

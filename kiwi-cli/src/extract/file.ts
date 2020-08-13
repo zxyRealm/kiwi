@@ -56,7 +56,6 @@ function readFile(fileName) {
  * @param filePath 文件路径
  */
 function writeFile(filePath, file) {
-  console.log('filePath', filePath)
   if (file) {
     fs.outputFileSync(filePath, file);
   }

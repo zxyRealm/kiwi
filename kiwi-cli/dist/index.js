@@ -16,7 +16,7 @@ const init_1 = require("./init");
 const sync_1 = require("./sync");
 const export_1 = require("./export");
 const import_1 = require("./import");
-const export_excel_1 = require("./export-excel");
+const excel_export_1 = require("./excel-export");
 const excel_compare_1 = require("./excel-compare");
 const unused_1 = require("./unused");
 const mock_1 = require("./mock");
@@ -39,7 +39,7 @@ commander
     .option('--init', '初始化项目', { isDefault: true })
     .option('--import [file] [lang]', '导入翻译文案')
     .option('--export [file] [lang]', '导出未翻译的文案')
-    .option('--excel [file] [lang]', '导出 excel')
+    .option('--excel [langDir] [lang]', '导出 excel')
     .option('--compare [originFile] [targetFile]', '对比导出 key 差异')
     .option('--sync', '同步各种语言的文案')
     .option('--mock', '使用 Google 翻译')
@@ -83,12 +83,13 @@ if (commander.compare) {
 }
 if (commander.excel) {
     spining('导出 excel', () => {
-        if (commander.excel === true || commander.args.length === 0) {
-            console.log('请按格式输入：--excel [file] [lang]');
-        }
-        else if (commander.args) {
-            export_excel_1.exportExcel(commander.excel, commander.args[0]);
-        }
+        console.log('excel', commander.excel, commander.args);
+        excel_export_1.exportExcel(commander.args.length && commander.excel, commander.args && commander.args[0]);
+        // if (commander.excel === true || commander.args.length === 0) {
+        //   console.log('请按格式输入：--excel [langDir] [lang]');
+        // } else if (commander.args) {
+        //   exportExcel(commander.excel, commander.args[0]);
+        // }
     });
 }
 if (commander.import) {

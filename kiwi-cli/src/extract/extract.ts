@@ -2,7 +2,7 @@
  * @author doubledream
  * @desc 提取指定文件夹下的中文
  */
-
+import * as chalk from 'chalk'
 import * as _ from 'lodash';
 import * as randomstring from 'randomstring';
 import * as slash from 'slash2';
@@ -14,7 +14,7 @@ import { translateText, findMatchKey, findMatchValue } from '../utils';
 import { replaceAndUpdate, hasImportI18N, createImportI18N } from './replace';
 import { getProjectConfig } from '../utils';
 import { name } from 'commander';
-
+const log = console.log
 const CONFIG = getProjectConfig();
 
 /**
@@ -33,7 +33,7 @@ function findAllChineseText(dir: string) {
     const sortTexts = _.sortBy(texts, obj => -obj.range.start);
 
     if (texts.length > 0) {
-      console.log(`${file} 发现中文文案`);
+      log(chalk.green(`${file} 发现中文文案 ${texts.length} 条`));
     }
 
     return texts.length > 0 ? pre.concat({ file, texts: sortTexts }) : pre;
@@ -47,32 +47,23 @@ function findAllChineseText(dir: string) {
  * @param {dirPath} 文件夹路径
  */
 function extractAll(dirPath?: string) {
-  // if (!CONFIG.googleApiKey) {
-  //   console.log('请配置googleApiKey');
-  //   return;
-  // }
-
   const dir = dirPath || './';
   const allTargetStrs = findAllChineseText(dir);
 
   if (!allTargetStrs.length) {
-    console.log('没有发现可替换的文案！');
+    log(chalk.yellow('没有发现可替换的文案！'));
     return;
   }
-  // console.log('chinese list', allTargetStrs)
   const finalLangObj = getSuggestLangObj()
-  // console.log('lang json', finalLangObj)
   allTargetStrs.forEach(async item => {
     // 当前文件名
     const currentFilename = item.file;
     // 文件中文案信息
     const targetStrs = item.texts;
-    console.log('strs ', targetStrs)
     const pathList = slash(currentFilename.replace(/(.+)\.[a-zA-Z]+$/, '$1')).split('/')
     let suggestion = pathList.slice(pathList.findIndex(i => i === 'src') + 1);
     // const finalLangObj = getSuggestLangObj();
     const virtualMemory = {};
-    // console.log(finalLangObj)
     /** 如果没有匹配到 Key */
     if (!(suggestion && suggestion.length)) {
       // slash 路径转换工具
@@ -108,7 +99,6 @@ function extractAll(dirPath?: string) {
         .then(([...translateTexts]) => {
           const replaceableStrs = targetStrs.reduce((prev, curr, i) => {
             const key = findMatchKey(finalLangObj, curr.text);
-            console.log(key, virtualMemory[curr.text])
             if (!virtualMemory[curr.text]) {
               if (key) {
                 virtualMemory[curr.text] = key;
@@ -143,7 +133,6 @@ function extractAll(dirPath?: string) {
               }
               virtualMemory[curr.text] = transKey;
               finalLangObj[transKey] = curr.text;
-              console.log('current ', transKey)
               return prev.concat({
                 target: curr,
                 key: transKey
@@ -168,15 +157,15 @@ function extractAll(dirPath?: string) {
 
                 writeFile(currentFilename, code);
               }
-              console.log(`${currentFilename}替换完成！`);
+              log(chalk.green(`${currentFilename}替换完成！`));
             })
             .catch(e => {
-              console.log(e.message);
+              log(chalk.red(e.message));
             });
         })
         .catch(err => {
           if (err) {
-            console.log('google翻译出问题了...');
+            log(chalk.red('google翻译出问题了...'));
           }
         });
     } catch (error) {
