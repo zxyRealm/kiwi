@@ -27,7 +27,7 @@ function spining(text, callback) {
 }
 
 commander
-  .version('0.2.1')
+  .version('0.2.2')
   .option('--init', '初始化项目', { isDefault: true })
   .option('--import [file] [lang]', '导入翻译文案')
   .option('--export [file] [lang]', '导出未翻译的文案')
@@ -77,13 +77,7 @@ if (commander.compare) {
 
 if (commander.excel) {
   spining('导出 excel', () => {
-    console.log('excel', commander.excel, commander.args)
     exportExcel(commander.args.length && commander.excel, commander.args && commander.args[0])
-    // if (commander.excel === true || commander.args.length === 0) {
-    //   console.log('请按格式输入：--excel [langDir] [lang]');
-    // } else if (commander.args) {
-    //   exportExcel(commander.excel, commander.args[0]);
-    // }
   });
 }
 

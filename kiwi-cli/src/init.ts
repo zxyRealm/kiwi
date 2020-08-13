@@ -44,12 +44,12 @@ function createCnFile() {
   const cnDir = `${PROJECT_CONFIG.dir}/zh-CN`;
   if (!fs.existsSync(cnDir)) {
     fs.mkdirSync(cnDir);
-    fs.writeFile(`${cnDir}/index.ts`, PROJECT_CONFIG.zhIndexFile, err => {
+    fs.writeFile(`${cnDir}/index.js`, PROJECT_CONFIG.zhIndexFile, err => {
       if (err) {
         console.log(err);
       }
     });
-    fs.writeFile(`${cnDir}/common.ts`, PROJECT_CONFIG.zhTestFile, err => {
+    fs.writeFile(`${cnDir}/common.js`, PROJECT_CONFIG.zhTestFile, err => {
       if (err) {
         console.log(err);
       }

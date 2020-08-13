@@ -2,7 +2,6 @@
  * @author doubledream
  * @desc 提取指定文件夹下的中文
  */
-import * as chalk from 'chalk'
 import * as _ from 'lodash';
 import * as randomstring from 'randomstring';
 import * as slash from 'slash2';
@@ -13,7 +12,7 @@ import { getSuggestLangObj } from './getLangData';
 import { translateText, findMatchKey, findMatchValue } from '../utils';
 import { replaceAndUpdate, hasImportI18N, createImportI18N } from './replace';
 import { getProjectConfig } from '../utils';
-import { name } from 'commander';
+const chalk = require('chalk')
 const log = console.log
 const CONFIG = getProjectConfig();
 

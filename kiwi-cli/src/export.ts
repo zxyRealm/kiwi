@@ -9,7 +9,7 @@ require('ts-node').register({
 });
 import * as fs from 'fs';
 import { tsvFormatRows } from 'd3-dsv';
-import { getAllMessages, getProjectConfig } from './utils';
+import { getAllMessages, getProjectConfig, getAllData } from './utils';
 import * as _ from 'lodash';
 
 function exportMessages(file?: string, lang?: string) {
@@ -18,9 +18,10 @@ function exportMessages(file?: string, lang?: string) {
 
   langs.map(lang => {
     const allMessages = getAllMessages(CONFIG.srcLang);
+    console.log(lang, Object.keys(allMessages).length)
     const existingTranslations = getAllMessages(
       lang,
-      (message, key) => !/[\u4E00-\u9FA5]/.test(allMessages[key]) || allMessages[key] !== message
+      (message, key) => CONFIG.srcLang === lang || !/[\u4E00-\u9FA5]/.test(allMessages[key]) || allMessages[key] !== message
     );
     const messagesToTranslate = Object.keys(allMessages)
       .filter(key => !existingTranslations.hasOwnProperty(key))
@@ -38,7 +39,7 @@ function exportMessages(file?: string, lang?: string) {
     const content = tsvFormatRows(messagesToTranslate);
     const sourceFile = file || `./export-${lang}`;
     fs.writeFileSync(sourceFile, content);
-    console.log(`Exported ${messagesToTranslate.length} message(s).`);
+    console.log(`Exported ${lang} ${messagesToTranslate.length} message(s).`);
   });
 }
 

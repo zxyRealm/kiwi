@@ -7,6 +7,8 @@ import * as _ from 'lodash';
 import * as fs from 'fs';
 import { PROJECT_CONFIG, KIWI_CONFIG_FILE } from './const';
 import translate, { parseMultiple } from 'google-translate-open-api'
+import * as ts from 'typescript'
+const dirs = require('node-dir')
 
 function lookForFiles(dir: string, fileName: string): string {
   const files = fs.readdirSync(dir);
@@ -26,6 +28,10 @@ function lookForFiles(dir: string, fileName: string): string {
       return currName;
     }
   }
+}
+
+function readFile (filename: string) {
+  return fs.readFileSync(filename, { encoding: 'utf8' })
 }
 
 /**
@@ -84,25 +90,12 @@ function traverse(obj, cb) {
  */
 function getAllMessages(lang: string, filter = (message: string, key: string) => true) {
   const srcLangDir = getLangDir(lang);
-  let files = fs.readdirSync(srcLangDir);
-  files = files.filter(file => file.endsWith('.ts') && file !== 'index.ts').map(file => path.resolve(srcLangDir, file));
-
-  const allMessages = files.map(file => {
-    const { default: messages } = require(file);
-    const fileNameWithoutExt = path.basename(file).split('_')[0];
-    const flattenedMessages = {};
-
-    traverse(messages, (message, path) => {
-      const key = fileNameWithoutExt + '_' + path;
-      if (filter(message, key)) {
-        flattenedMessages[key] = message;
-      }
-    });
-
-    return flattenedMessages;
-  });
-
-  return Object.assign({}, ...allMessages);
+  // try {
+  let files = dirs.files(srcLangDir, {
+    sync: true,
+    match: /\.(js|ts)$/
+  })
+  return getAllData(files, filter)
 }
 
 /**
@@ -210,6 +203,44 @@ function replaceOccupyStr(str: string, regexp: RegExp, replacement?: string) {
   })
 }
 
+// 将文件读取后转换问 js 对象
+function transformToObject(filename: string, filter?: Function): object {
+  const code = readFile(filename)
+  const ast = ts.createSourceFile('', code, ts.ScriptTarget.ES2015, true, ts.ScriptKind.TS);
+  const keysObject = {}
+  function visit(node: ts.Node) {
+    switch (node && node.kind) {
+      case ts.SyntaxKind.PropertyAssignment: {
+      /** 判断 Ts 中的字符串含有中文 */
+        const {
+          name,
+          initializer
+        }: { name; initializer } = node as ts.PropertyAssignment;
+        if (filter(initializer.text, name.text)) {
+          keysObject[name.text] = initializer.text
+        }
+        
+        break;
+      }
+    }
+
+    ts.forEachChild(node, visit);
+  }
+  ts.forEachChild(ast, visit);
+  return keysObject 
+}
+
+function getAllData (files: Array<string>, filter = (...arg) => true) {
+  if (!files) return {}
+  return files.reduce((prev, curr) => {
+    const dataObj = transformToObject(curr, filter)
+    return {
+      ...prev,
+      ...dataObj
+    }
+  }, {})
+}
+
 export {
   getKiwiDir,
   getLangDir,
@@ -223,5 +254,7 @@ export {
   findMatchValue,
   flatten,
   lookForFiles,
-  replaceOccupyStr
+  replaceOccupyStr,
+  transformToObject,
+  getAllData
 };

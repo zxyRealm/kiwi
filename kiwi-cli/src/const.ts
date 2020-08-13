@@ -19,7 +19,6 @@ export const PROJECT_CONFIG = {
     configFile: `./.kiwi/${KIWI_CONFIG_FILE}`,
     srcLang: 'zh-CN',
     distLangs: ['en-US', 'zh-TW'],
-    googleApiKey: '',
     translateOptions: {
       tld: 'cn',
       concurrentLimit: 10,
@@ -35,9 +34,9 @@ export const PROJECT_CONFIG = {
   },
   zhIndexFile: `import common from './common';
 
-export default Object.assign({}, {
+export default {
   common
-});`,
+}`,
   zhTestFile: `export default {
     test: '测试'
   }`

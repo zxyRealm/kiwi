@@ -26,9 +26,6 @@ Kiwi 的 CLI 工具
   "srcLang": "zh-CN",
   "distLangs": ["en-US", "zh-TW"],
 
-  // googleApiKey
-  "googleApiKey": "",
-
   // import 语句，不同项目请自己配置
   "importI18N": "",
 
@@ -60,6 +57,14 @@ kiwi --import [filePath] en-US
 ### kiwi `--export`
 
 导出未翻译的文案
+
+### kiwi `--excel`
+
+将语言包导出成 excel
+
+### kiwi `--compare`
+
+根据导出的 excel, 对比不同语言类型和基础语言包之间的差异
 
 ```shell script
 # 导出指定语言的文案，lang取值为配置中distLangs值，如en-US导出还未翻译成英文的中文文案

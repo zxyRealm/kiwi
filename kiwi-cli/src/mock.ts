@@ -11,27 +11,14 @@ require('ts-node').register({
 import * as path from 'path';
 import * as fs from 'fs';
 import * as _ from 'lodash';
-import { traverse, getProjectConfig, getLangDir } from './utils';
+import {
+  traverse,
+  getProjectConfig,
+  getLangDir,
+  translateText
+} from './utils';
 const CONFIG = getProjectConfig();
-const { translate: googleTranslate } = require('google-translate')(CONFIG.googleApiKey);
 
-import { withTimeout, retry } from './utils';
-import { PROJECT_CONFIG } from './const';
-
-function translateText(text, toLang) {
-  return withTimeout(
-    new Promise((resolve, reject) => {
-      googleTranslate(text, 'zh', PROJECT_CONFIG.langMap[toLang], (err, translation) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(translation.translatedText);
-        }
-      });
-    }),
-    5000
-  );
-}
 /**
  * 获取中文文案
  */
