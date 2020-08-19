@@ -21,7 +21,7 @@ const CONFIG = getProjectConfig();
  */
 function findAllChineseText(dir: string) {
   const dirPath = path.resolve(process.cwd(), dir);
-  const files = getSpecifiedFiles(dirPath, CONFIG.ignoreDir, CONFIG.ignoreFile);
+  const files = getSpecifiedFiles(dirPath, CONFIG.include, CONFIG.exclude);
   const filterFiles = files.filter(file => {
     return file.endsWith('.ts') || file.endsWith('.tsx') || file.endsWith('.vue') || file.endsWith('.js');
   });
@@ -46,7 +46,7 @@ function findAllChineseText(dir: string) {
  * @param {dirPath} 文件夹路径
  */
 function extractAll(dirPath?: string) {
-  const dir = dirPath || './';
+  const dir = dirPath || './src';
   const allTargetStrs = findAllChineseText(dir);
 
   if (!allTargetStrs.length) {
@@ -168,7 +168,7 @@ function extractAll(dirPath?: string) {
           }
         });
     } catch (error) {
-      console.error(error)
+      log('error--', chalk.red(error.message))
     }
   });
 }

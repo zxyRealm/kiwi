@@ -51,7 +51,6 @@ function findTextInTs(code: string, fileName: string) {
           const start = node.getStart();
           const end = node.getEnd();
           const isGlobal = code.substr(start - 3, 3) === '.t('
-          console.log('start 2 char', code.substr(start - 3, 3))
           const range = {
             start: start + Number(isGlobal),
             end: end - Number(isGlobal)

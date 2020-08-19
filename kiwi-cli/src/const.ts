@@ -25,6 +25,8 @@ export const PROJECT_CONFIG = {
       requestOptions: {}
     },
     importI18N: `import I18N from 'src/utils/I18N';`,
+    exclude: ['node_modules'],
+    include: ['src'],
     ignoreDir: '',
     ignoreFile: ''
   },

@@ -11,7 +11,6 @@ import { readFile, writeFile } from './file';
 import { getLangData } from './getLangData';
 import { getProjectConfig, getLangDir } from '../utils';
 import * as slash from 'slash2';
-import { scrypt } from 'crypto';
 import * as vueCompiler from 'vue-template-compiler'
 
 const CONFIG = getProjectConfig();
@@ -36,7 +35,6 @@ function updateLangFiles(keyValue, text, validateDuplicate, filePath) {
     return;
   }
   if (!fs.existsSync(targetFilename)) {
-    // console.log('write FILE', )
     fs.outputFileSync(targetFilename, generateNewLangFile(fullKey, text));
     addImportToMainLangFile(filename);
     console.log(`成功新建语言文件 ${targetFilename}`);
@@ -56,7 +54,6 @@ function updateLangFiles(keyValue, text, validateDuplicate, filePath) {
     // \n 会被自动转义成 \\n，这里转回来
     text = text.replace(/\\n/gm, '\n');
     _.set(obj, fullKey, text);
-    // console.log('new lang file', obj)
     fs.outputFileSync(targetFilename, prettierFile(`export default ${JSON.stringify(obj, null, 2)}`));
   }
 }
@@ -211,7 +208,6 @@ function replaceAndUpdate(filePath, arg, val, validateDuplicate) {
   // 若是字符串，删掉两侧的引号
   if (isVueFile) {
     newCode = replaceInVue(filePath, arg, val)
-    // console.log('new code =', newCode)
   } else if (arg.isString) {
     // 如果引号左侧是 等号，则可能是 jsx 的 props，此时要替换成 {
     const preTextStart = start - 1;

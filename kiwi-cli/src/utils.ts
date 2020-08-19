@@ -8,6 +8,8 @@ import * as fs from 'fs';
 import { PROJECT_CONFIG, KIWI_CONFIG_FILE } from './const';
 import translate, { parseMultiple } from 'google-translate-open-api'
 import * as ts from 'typescript'
+const log = console.log
+const chalk = require('chalk')
 const dirs = require('node-dir')
 
 function lookForFiles(dir: string, fileName: string): string {
@@ -129,7 +131,7 @@ function withTimeout(promise, ms) {
   return Promise.race([promise, timeoutPromise]);
 }
 
-/**
+/*
  * 使用google翻译
  */
 function translateText(text, toLang) {
@@ -148,9 +150,13 @@ function translateText(text, toLang) {
           if (Array.isArray(text)) {
             translatedText = parseMultiple(translatedText)
           }
-          resolve(translatedText)
+          const randomTime = parseInt((Math.random() * 3).toString(), 10) + 3
+          setTimeout(() => {
+            resolve(translatedText)
+          }, randomTime)
+          
         }).catch(error => {
-          console.error('translate error', error)
+          log('translate error', chalk(error.message))
           reject(error)
         }
       );

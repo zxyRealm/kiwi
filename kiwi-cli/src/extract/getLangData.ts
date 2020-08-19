@@ -10,7 +10,6 @@ import { getProjectConfig, flatten } from '../utils';
 import { readFile } from './file'
 const CONFIG = getProjectConfig();
 const LANG_DIR = path.resolve(CONFIG.kiwiDir, CONFIG.srcLang);
-import * as slash from 'slash2';
 
 const I18N_GLOB = `${LANG_DIR}/**/*.{ts,js}`;
 
