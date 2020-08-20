@@ -18,17 +18,16 @@ export const PROJECT_CONFIG = {
     kiwiDir: './.kiwi',
     configFile: `./.kiwi/${KIWI_CONFIG_FILE}`,
     srcLang: 'zh-CN',
-    distLangs: ['en-US', 'zh-TW'],
+    distLangs: ['en', 'zh-CN'],
     translateOptions: {
       tld: 'cn',
       concurrentLimit: 10,
-      requestOptions: {}
+      requestOptions: {},
+      timeout: 6 * 1000
     },
     importI18N: `import I18N from 'src/utils/I18N';`,
     exclude: ['node_modules'],
-    include: ['src'],
-    ignoreDir: '',
-    ignoreFile: ''
+    include: ['src']
   },
   langMap: {
     ['en-US']: 'en',
@@ -36,9 +35,9 @@ export const PROJECT_CONFIG = {
   },
   zhIndexFile: `import common from './common';
 
-export default {
-  common
-}`,
+  export default {
+    ...common
+  }`,
   zhTestFile: `export default {
     test: '测试'
   }`
@@ -98,6 +97,9 @@ export default {
 // const DIR_ADAPTOR = dirAdaptor();
 // const I18N_GLOB = `${LANG_PREFIX}**/*.ts`;
 
-const DOUBLE_BYTE_REGEX = /[^\x00-\xff]/g;
-
+// unicode 中文编码 https://www.qqxiuzi.cn/zh/hanzi-unicode-bianma.php
+// 匹配中文文本
+// const DOUBLE_BYTE_REGEX = /[\u4E00-\u9FEF\u3400-\u4DB5\u2A700-\u2B734\u2B740-\u2B81D\u2B820-\u2CEA1\u2CEB0-\u2EBE0\u30000-\u3134A\u2F00-\u2FD5\u2E80-\u2EF3\uF900-\uFAD9\u2F800-\u2FA1D\u31C0-\u31E3\u3105-\u312F]/g;
+// const DOUBLE_BYTE_REGEX = /[^\x00-\xff，。、：；．‘’！？…–￥℃《》〔〕「」【】『』〈〉（）“”]/g
+const DOUBLE_BYTE_REGEX = /[\u4e00-\u9fa5]/g
 export { DOUBLE_BYTE_REGEX }

@@ -9,9 +9,10 @@ import * as prettier from 'prettier';
 import * as ts from 'typescript';
 import { readFile, writeFile } from './file';
 import { getLangData } from './getLangData';
-import { getProjectConfig, getLangDir } from '../utils';
+import { getProjectConfig, getLangDir, getAllMessages } from '../utils';
 import * as slash from 'slash2';
 import * as vueCompiler from 'vue-template-compiler'
+const chalk = require('chalk')
 
 const CONFIG = getProjectConfig();
 const srcLangDir = getLangDir(CONFIG.srcLang);
@@ -24,16 +25,25 @@ function updateLangFiles(keyValue, text, validateDuplicate, filePath) {
   
   if (isVueFile) {
     // 根据项目文件生成语言文件目录，以 src 为基础目录在语言包文件进行映射，目录层级大于3时进行合并
-    const files = filePath.replace(/\\/, '\\').split('\\')
+    const files = slash(filePath).split('/')
     let srcFiles = files.slice(files.findIndex(i => i === 'src') + 1)
     srcFiles = srcFiles.length > 4 ? srcFiles.slice(0, 4) : srcFiles
     filename = srcFiles.join('/').lastIndexOf('.') === -1 ? srcFiles.join('/') : srcFiles.join('/').substring(0, srcFiles.join('/').lastIndexOf('.'))
-    fullKey = keyValue;
+    fullKey = keyValue.replace('-', '_');
     targetFilename = slash(`${srcLangDir}/${filename}.js`);
   }
   if (!isVueFile && !_.startsWith(keyValue, 'I18N.')) {
     return;
   }
+
+  const allMessages = getAllMessages()
+  if (allMessages[fullKey] !== undefined) {
+    if (allMessages[fullKey] !== text) {
+      throw new Error(chalk.red(`重复 key 值  ${fullKey}  ${text}`))
+    }
+    return
+  }
+
   if (!fs.existsSync(targetFilename)) {
     fs.outputFileSync(targetFilename, generateNewLangFile(fullKey, text));
     addImportToMainLangFile(filename);
@@ -67,7 +77,11 @@ function prettierFile(fileContent) {
     return prettier.format(fileContent, {
       parser: 'typescript',
       trailingComma: 'none',
-      singleQuote: true
+      singleQuote: true,
+      semi: false,
+      proseWrap: 'never',
+      printWidth: 999
+
     });
   } catch (e) {
     console.error(`代码格式化报错！${e.toString()}\n代码为：${fileContent}`);
@@ -84,38 +98,39 @@ function generateNewLangFile(key, value) {
 function addImportToMainLangFile(newFilename) {
   let mainContent = '';
   const filePath = `${srcLangDir}/index.js`
-  const exportName = newFilename.split('/')
+  const exportName = newFilename
+    .replace(/[-_]/g, '/').split('/')
     .filter(i => i)
     .map(str => {
       return str.substr(0, 1).toLocaleUpperCase() + str.substr(1)
     }).join('')
   if (fs.existsSync(filePath)) {
     mainContent = fs.readFileSync(filePath, 'utf8');
-    mainContent = mainContent.replace(/^(\s*import.*?;)$/m, `$1\nimport ${exportName} from './${newFilename}';`);
-    if (/(}\);)/.test(mainContent)) {
-      if (/\,\n(}\);)/.test(mainContent)) {
+    mainContent = mainContent.replace(/^(\s*import.*?;?)$/m, `$1\nimport ${exportName} from './${newFilename}'`);
+    if (/(}\);?)/.test(mainContent)) {
+      if (/,\n(}\);?)/.test(mainContent)) {
         /** 最后一行包含,号 */
-        mainContent = mainContent.replace(/(}\);)/, `  ...${exportName},\n$1`);
+        mainContent = mainContent.replace(/(}\))/, `  ...${exportName},\n$1`);
       } else {
         /** 最后一行不包含,号 */
-        mainContent = mainContent.replace(/\n(}\);)/, `,\n  ...${exportName},\n$1`);
+        mainContent = mainContent.replace(/\n(}\))/, `,\n  ...${exportName},\n$1`);
       }
     }
     // 兼容 export default { common };的写法
-    if (/(};)/.test(mainContent)) {
-      if (/\,\n(};)/.test(mainContent)) {
+    if (/(};?)/.test(mainContent)) {
+      if (/,\n(};?)/.test(mainContent)) {
         /** 最后一行包含,号 */
-        mainContent = mainContent.replace(/(};)/, `  ...${exportName},\n$1`);
+        mainContent = mainContent.replace(/(})/, `  ...${exportName},\n$1`);
       } else {
         /** 最后一行不包含,号 */
-        mainContent = mainContent.replace(/\n(};)/, `,\n  ....${exportName},\n$1`);
+        mainContent = mainContent.replace(/\n(})/, `,\n  ...${exportName},\n$1`);
       }
     }
   } else {
-    mainContent = `import ${exportName} from './${newFilename}';\n\nexport default {\n ...${exportName},\n};`;
+    mainContent = `import ${exportName} from './${newFilename}'\n\nexport default {\n ...${exportName},\n}`;
   }
 
-  fs.writeFileSync(filePath, mainContent);
+  fs.writeFileSync(filePath, prettierFile(mainContent));
 }
 
 /**
@@ -201,7 +216,7 @@ function replaceAndUpdate(filePath, arg, val, validateDuplicate) {
   const code = readFile(filePath);
   const isHtmlFile = _.endsWith(filePath, '.html');
   const isVueFile = _.endsWith(filePath, '.vue') || _.endsWith(filePath, '.js');
-
+  val = val.replace(/-/g, '_')
   let newCode = code;
   let finalReplaceText = arg.text;
   const { start, end } = arg.range;

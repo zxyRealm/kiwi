@@ -8,6 +8,7 @@ import * as fs from 'fs';
 import { PROJECT_CONFIG, KIWI_CONFIG_FILE } from './const';
 import translate, { parseMultiple } from 'google-translate-open-api'
 import * as ts from 'typescript'
+import { readFiles } from './extract/file'
 const log = console.log
 const chalk = require('chalk')
 const dirs = require('node-dir')
@@ -90,13 +91,12 @@ function traverse(obj, cb) {
 /**
  * 获取所有文案
  */
-function getAllMessages(lang: string, filter = (message: string, key: string) => true) {
+function getAllMessages(lang?: string, filter = (message: string, key: string) => true) {
+  const CONFIG = getProjectConfig();
+  lang = lang || CONFIG.srcLang
   const srcLangDir = getLangDir(lang);
   // try {
-  let files = dirs.files(srcLangDir, {
-    sync: true,
-    match: /\.(js|ts)$/
-  })
+  let files = readFiles(srcLangDir, /\.(js|ts)$/)
   return getAllData(files, filter)
 }
 
@@ -122,14 +122,18 @@ function retry(asyncOperation, times = 1) {
  * @param promise
  * @param ms
  */
-function withTimeout(promise, ms) {
+function withTimeout(promise, ms, text) {
   const timeoutPromise = new Promise((resolve, reject) => {
     setTimeout(() => {
-      reject(`Promise timed out after ${ms} ms.`);
+      reject({
+        text,
+        message: `Promise timed out after ${ms} ms.`
+      });
     }, ms);
   });
   return Promise.race([promise, timeoutPromise]);
 }
+
 
 /*
  * 使用google翻译
@@ -146,22 +150,19 @@ function translateText(text, toLang) {
           ...options,
           to: PROJECT_CONFIG.langMap[toLang]
         }).then(res => {
-          let translatedText = res.data[0]
+          let translatedText =  Array.isArray(res.data) ? res.data[0] : res.data
           if (Array.isArray(text)) {
             translatedText = parseMultiple(translatedText)
           }
-          const randomTime = parseInt((Math.random() * 3).toString(), 10) + 3
-          setTimeout(() => {
-            resolve(translatedText)
-          }, randomTime)
-          
+          resolve(translatedText)
         }).catch(error => {
           log('translate error', chalk(error.message))
           reject(error)
         }
       );
     }),
-    5000
+    options.timeout,
+    text
   );
 }
 
@@ -187,7 +188,6 @@ function findMatchValue(langObj, key) {
 function flatten(obj, prefix = '') {
   var propName = prefix ? prefix + '_' : '',
     ret = {};
-
   for (var attr in obj) {
     if (_.isArray(obj[attr])) {
       var len = obj[attr].length;
@@ -225,7 +225,6 @@ function transformToObject(filename: string, filter?: Function): object {
         if (filter(initializer.text, name.text)) {
           keysObject[name.text] = initializer.text
         }
-        
         break;
       }
     }

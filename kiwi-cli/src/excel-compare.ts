@@ -49,7 +49,6 @@ function compareExcel(originFile: string, targetFile: string) {
       data.push([null, key])
     }
   })
-  console.log('compare data', data)
   const buffer = xlsx.build([{ data }], sheetOptions)
   const filePath = `./excel-compare.xlsx`
   fs.outputFileSync(filePath, buffer)

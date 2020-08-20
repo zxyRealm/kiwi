@@ -1,0 +1,21 @@
+{
+  "kiwiDir": "src/locales",
+  "configFile": "src/locales/kiwi-config.json",
+  "srcLang": "zh-CN",
+  "distLangs": [
+    "en",
+    "zh-CN"
+  ],
+  "translateOptions": {
+    "tld": "cn",
+    "concurrentLimit": 10,
+    "requestOptions": {}
+  },
+  "importI18N": "import i18n from '@/locales'",
+  "exclude": [
+    "node_modules"
+  ],
+  "include": [
+    "src"
+  ]
+}

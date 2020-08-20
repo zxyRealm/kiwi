@@ -43,7 +43,7 @@
     "node-dir": "^0.1.17",
     "node-xlsx": "^0.15.0",
     "ora": "^3.0.0",
-    "prettier": "^1.16.4",
+    "prettier": "^2.0.5",
     "randomstring": "^1.1.5",
     "slash2": "^2.0.0",
     "ts-node": "^7.0.1",

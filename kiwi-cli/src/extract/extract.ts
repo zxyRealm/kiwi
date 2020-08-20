@@ -12,6 +12,7 @@ import { getSuggestLangObj } from './getLangData';
 import { translateText, findMatchKey, findMatchValue } from '../utils';
 import { replaceAndUpdate, hasImportI18N, createImportI18N } from './replace';
 import { getProjectConfig } from '../utils';
+import { filter } from 'lodash';
 const chalk = require('chalk')
 const log = console.log
 const CONFIG = getProjectConfig();
@@ -20,8 +21,7 @@ const CONFIG = getProjectConfig();
  * 递归匹配项目中所有的代码的中文
  */
 function findAllChineseText(dir: string) {
-  const dirPath = path.resolve(process.cwd(), dir);
-  const files = getSpecifiedFiles(dirPath, CONFIG.include, CONFIG.exclude);
+  const files = getSpecifiedFiles(dir, CONFIG.include, CONFIG.exclude);
   const filterFiles = files.filter(file => {
     return file.endsWith('.ts') || file.endsWith('.tsx') || file.endsWith('.vue') || file.endsWith('.js');
   });
@@ -38,6 +38,13 @@ function findAllChineseText(dir: string) {
     return texts.length > 0 ? pre.concat({ file, texts: sortTexts }) : pre;
   }, []);
 
+  // 统计本次扫描新增文案条数
+  const textList = allTexts.reduce((pre, curr) => {
+    return pre.concat(curr.texts)
+  }, [])
+  if (textList.length) {
+    log(chalk.green(`发现可替换文案 ${textList.length} 条`))
+  }
   return allTexts;
 }
 
@@ -61,7 +68,6 @@ function extractAll(dirPath?: string) {
     const targetStrs = item.texts;
     const pathList = slash(currentFilename.replace(/(.+)\.[a-zA-Z]+$/, '$1')).split('/')
     let suggestion = pathList.slice(pathList.findIndex(i => i === 'src') + 1);
-    // const finalLangObj = getSuggestLangObj();
     const virtualMemory = {};
     /** 如果没有匹配到 Key */
     if (!(suggestion && suggestion.length)) {
@@ -107,7 +113,7 @@ function extractAll(dirPath?: string) {
                 });
               }
               const uuidKey = `${randomstring.generate({
-                length: 4,
+                length: 8,
                 charset: 'qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM'
               })}`;
               const handleText = translateTexts[i] ? _.camelCase(translateTexts[i] as string) : uuidKey;
@@ -164,7 +170,7 @@ function extractAll(dirPath?: string) {
         })
         .catch(err => {
           if (err) {
-            log(chalk.red('google翻译出问题了...'));
+            log(chalk.red('google翻译出问题了...', err.message, err.text));
           }
         });
     } catch (error) {

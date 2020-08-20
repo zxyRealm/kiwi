@@ -15,13 +15,15 @@ export function findTextInVueTs(code: string, fileName: string, startNum: number
       case ts.SyntaxKind.StringLiteral: {
         /** 判断 Ts 中的字符串含有中文 */
         const { text } = node as ts.StringLiteral;
-        if (text.match(DOUBLE_BYTE_REGEX)) {
-          const start = node.getStart();
-          const end = node.getEnd();
+        const start = node.getStart();
+        const end = node.getEnd();
+        const ignoreText = code.substr(start - 20, 20).indexOf('/* ignore */') > -1
+        if (text.match(DOUBLE_BYTE_REGEX) && !ignoreText) {
+          
           /** 加一，减一的原因是，去除引号 */
           // 判断字符串是否已经被 i18n.t() 包裹
           const prevChar = code.substr(start - 3, 3)
-          const isGlobal = (prevChar === '.t(')
+          const isGlobal = (['.t(', '$t('].includes(prevChar))
           matches.push({
             type: isGlobal ? 'jsGlobal' : 'jsStr',
             start: startNum + start + Number(isGlobal),
@@ -32,12 +34,15 @@ export function findTextInVueTs(code: string, fileName: string, startNum: number
         break;
       }
       case ts.SyntaxKind.TemplateExpression: {
-        const { pos, end } = node;
-        let templateContent = code.slice(pos, end);
+        const { pos, end: endIndex } = node;
+        let templateContent = code.slice(pos, endIndex);
         templateContent = templateContent.toString().replace(/\$\{[^\}]+\}/, '')
-        if (templateContent.match(DOUBLE_BYTE_REGEX)) {
-          const start = node.getStart();
-          const end = node.getEnd();
+        const start = node.getStart();
+        const end = node.getEnd();
+        const ignoreText = code.substr(start - 20, 20).indexOf('/* ignore */') > -1
+        // console.log()
+        if (templateContent.match(DOUBLE_BYTE_REGEX) && !ignoreText) {
+          
           /** 加一，减一的原因是，去除`号 */
 
           const texts = filterTemplateStr(code.substring(start, end), startNum + start, 'jsTemplate')
@@ -47,7 +52,6 @@ export function findTextInVueTs(code: string, fileName: string, startNum: number
       
       }
     }
-
     ts.forEachChild(node, visit);
   }
   ts.forEachChild(ast, visit);
@@ -135,7 +139,6 @@ export function filterStaticStr(str: string, sIndex: number) {
   if (!str) return []
   const matches = []
   // 不存在{{}}
-
   const matchTemp = str.match(/\{\{(.*?)\}\}/)
   if (!matchTemp && str.match(DOUBLE_BYTE_REGEX)) {
     const start = sIndex + str.length - str.trimLeft().length
@@ -157,23 +160,25 @@ export function filterAttrsText(attrsMap: object) {
   if (!attrsMap) return []
   const handleAttrObj = (attrObj) => {
     // 变量处理
-    const { start, name, value } = attrObj
+    // attrs 中的起始位置为上一个属性结束为下一位，因此需要注意的是 start - end 范围的字符串起始可能包含换行符，位置查询时可从结束位置计算
+    const { end, name, value } = attrObj
     if (attrObj.name.indexOf(':') === 0) {
       const text = `${name}="${value}"`
+      const tStart = end - value.length - name.length - 3
       if (value.match(/`(.*?)`/)) {
-        return filterTemplateStr(text, start)
+        return filterTemplateStr(text, tStart)
       } else if (value.match(matchExpReg())) {
-        return filterGlobalStr(text, start)
+        return filterGlobalStr(text, tStart)
       }
       console.error(attrObj)
       return []
     } else {
-      const valStart = start + name.length + 2
+      const valEnd = end - 1
       return [{
         ...attrObj,
         type: 'attrStr',
-        start: valStart,
-        end: valStart + value.length,
+        start: valEnd - value.length,
+        end: valEnd,
         text: value
       }]
     }

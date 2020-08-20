@@ -1,4 +1,3 @@
-const dirs = require('node-dir')
 const slash = require('slash2')
 const path = require('path')
 const fs = require('fs')
@@ -14,11 +13,6 @@ const options = {
   exclude: ['node_modules', 'src/locales', /\.js$/, 'test.txt'],
   include: ['src']
 }
-
-fs.readdir('./', (error, list) => {
-  if (error) throw error
-  console.log('files list', list)
-})
 
 function translateText (text) {
   const options = {
@@ -48,11 +42,33 @@ function translateText (text) {
   );
 }
 
-// translateText('翻译测试了')
-(async function() {
-  try {
-    await translateText('翻译测试', { to: 'en' })
-  } catch (error) {
-    console.error(error)
+function readFiles(dir) {
+  const fileList = []
+  const readFile = (directory) => {
+    const files = fs.readdirSync(directory);
+    files.forEach((item) => {
+      var fullPath = path.join(directory, item);
+      const stat = fs.statSync(fullPath);
+      if (stat.isDirectory()) {
+        readFile(path.join(directory, item));  //递归读取文件
+      } else {
+        fileList.push(fullPath)
+      }
+    });
   }
-})()
+  readFile(dir)
+  return fileList
+}
+
+googleTranslate('开始了', { to: 'en', from: 'zh-CN', tld: 'cn' }).then(res => {
+  console.log('res', res.data)
+}).catch(error => {
+  console.error(error)
+})
+// (async function() {
+//   try {
+//     await translateText('翻译测试', { to: 'en' })
+//   } catch (error) {
+//     console.error(error)
+//   }
+// })()

@@ -26,14 +26,14 @@ function createConfigFile(existDir?: string) {
       );
       fs.writeFile(existConfigFile, config, err => {
         if (err) {
-          console.log(err);
+          console.error(err);
         }
       });
     } else if (!fs.existsSync(PROJECT_CONFIG.configFile)) {
       const config = JSON.stringify(PROJECT_CONFIG.defaultConfig, null, 2);
       fs.writeFile(PROJECT_CONFIG.configFile, config, err => {
         if (err) {
-          console.log(err);
+          console.error(err);
         }
       });
     }
@@ -46,12 +46,12 @@ function createCnFile() {
     fs.mkdirSync(cnDir);
     fs.writeFile(`${cnDir}/index.js`, PROJECT_CONFIG.zhIndexFile, err => {
       if (err) {
-        console.log(err);
+        console.error(err);
       }
     });
     fs.writeFile(`${cnDir}/common.js`, PROJECT_CONFIG.zhTestFile, err => {
       if (err) {
-        console.log(err);
+        console.error(err);
       }
     });
   }
@@ -61,7 +61,7 @@ function initProject(existDir?: string) {
   /** 初始化配置文件夹 */
   if (existDir) {
     if (!fs.existsSync(existDir)) {
-      console.log('输入的目录不存在，已为你生成默认文件夹');
+      console.error('输入的目录不存在，已为你生成默认文件夹');
       fs.mkdirSync(PROJECT_CONFIG.dir);
     }
   } else if (!fs.existsSync(PROJECT_CONFIG.dir)) {

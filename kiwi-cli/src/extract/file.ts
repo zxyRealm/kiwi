@@ -6,7 +6,6 @@
 import * as path from 'path';
 import * as _ from 'lodash';
 import * as fs from 'fs-extra';
-import * as dirs from 'node-dir'
 import * as slash from 'slash2';
 
 /*
@@ -16,14 +15,11 @@ import * as slash from 'slash2';
  * @param {ignoreDirectory} 忽略文件夹 {ignoreFile} 忽略的文件
  */
 function getSpecifiedFiles(dir, includeOption = '', excludeOption = ''): string[] {
-  const files = dirs.files(dir, {
-    sync: true
-  })
+  const files = readFiles(dir)
   return files
     .map(f => slash(f))
     .filter(file => {
       // 处理文件过滤规则
-      // 
       const validateRule = (rule, str) => {
         // 当 rule 为 string 并且不是一个文件时，将其转换为一个正则表达式
         const isFile = rule.split && rule.split('/')[rule.split('/').length - 1].includes('.')
@@ -62,29 +58,24 @@ function getSpecifiedFiles(dir, includeOption = '', excludeOption = ''): string[
       }
       return include() && !exclude() 
   })
-  // return fs.readdirSync(dir).reduce((files, file) => {
-  //   const name = path.join(dir, file);
-  //   const isDirectory = fs.statSync(name).isDirectory();
-  //   const isFile = fs.statSync(name).isFile();
-  //   files = files.map(f => slash(f))
-  //   if (isDirectory) {
-  //     return files.concat(getSpecifiedFiles(name, ignoreDirectory, ignoreFile));
-  //   }
+}
 
-  //   const isIgnoreDirectory =
-  //     !ignoreDirectory ||
-  //     (ignoreDirectory &&
-  //       !path
-  //         .dirname(name)
-  //         .split('/')
-  //         .includes(ignoreDirectory));
-  //   const isIgnoreFile = !ignoreFile || (ignoreFile && path.basename(name) !== ignoreFile);
-
-  //   if (isFile && isIgnoreDirectory && isIgnoreFile) {
-  //     return files.concat(name);
-  //   }
-  //   return files;
-  // }, []);
+function readFiles(dir, match?) {
+  const fileList = []
+  const readFile = (directory) => {
+    const files = fs.readdirSync(directory);
+    files.forEach((item) => {
+      var fullPath = path.join(directory, item);
+      const stat = fs.statSync(fullPath);
+      if (stat.isDirectory()) {
+        readFile(path.join(directory, item));  //递归读取文件
+      } else if ((match && match.test && match.test(fullPath)) || !match) {
+        fileList.push(fullPath)
+      }
+    });
+  }
+  readFile(dir)
+  return fileList
 }
 
 // 获取符合过滤条件的所有文件
@@ -112,4 +103,4 @@ function writeFile(filePath, file) {
   }
 }
 
-export { getSpecifiedFiles, readFile, writeFile };
+export { getSpecifiedFiles, readFile, readFiles, writeFile };

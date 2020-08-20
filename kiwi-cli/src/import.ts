@@ -2,6 +2,8 @@
  * @author linhuiw
  * @desc 导入翻译文件
  */
+const xlsx = require('node-xlsx')
+
 require('ts-node').register({
   compilerOptions: {
     module: 'commonjs'
@@ -14,6 +16,20 @@ import { tsvParseRows } from 'd3-dsv';
 import { getAllMessages, getProjectConfig, traverse } from './utils';
 
 const CONFIG = getProjectConfig();
+
+function readSheetData (filename, index = 2) {
+  if (!filename) return {}
+  const sheets = xlsx.parse(filename)
+  const keysMap = {}
+  sheets.forEach(sheet => {
+    const { data } = sheet
+    data.forEach(row => {
+      keysMap[row[0]] = row[index]
+    })
+  })
+
+  return keysMap
+}
 
 function getMessagesToImport(file: string) {
   const content = fs.readFileSync(file).toString();
@@ -52,7 +68,7 @@ function writeMessagesToFile(messages: any, file: string, lang: string) {
   traverse(srcMessages, (message, key) => {
     _.setWith(rst, key, _.get(messages, key) || _.get(oldDstMessages, key), Object);
   });
-  fs.writeFileSync(dstFile + '.ts', 'export default ' + JSON.stringify(rst, null, 2));
+  fs.writeFileSync(dstFile + '.js', 'export default ' + JSON.stringify(rst, null, 2));
 }
 
 function importMessages(file: string, lang: string) {

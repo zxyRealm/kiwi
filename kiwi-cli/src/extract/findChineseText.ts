@@ -47,10 +47,13 @@ function findTextInTs(code: string, fileName: string) {
       case ts.SyntaxKind.StringLiteral: {
         /** 判断 Ts 中的字符串含有中文 */
         const { text } = node as ts.StringLiteral;
-        if (text.match(DOUBLE_BYTE_REGEX)) {
-          const start = node.getStart();
-          const end = node.getEnd();
-          const isGlobal = code.substr(start - 3, 3) === '.t('
+        const start = node.getStart();
+        const end = node.getEnd();
+        const ignoreText = code.substr(start - 20, 20).indexOf('/* ignore */') > -1
+
+        if (text.match(DOUBLE_BYTE_REGEX) && !ignoreText) {
+          
+          const isGlobal = ['.t(', '$t('].includes(code.substr(start - 3, 3))
           const range = {
             start: start + Number(isGlobal),
             end: end - Number(isGlobal)
@@ -89,12 +92,12 @@ function findTextInTs(code: string, fileName: string) {
         break;
       }
       case ts.SyntaxKind.TemplateExpression: {
-        const { pos, end } = node;
-        const templateContent = code.slice(pos, end);
-
-        if (templateContent.match(DOUBLE_BYTE_REGEX)) {
-          const start = node.getStart();
-          const end = node.getEnd();
+        const { pos, end: endIndex } = node;
+        const templateContent = code.slice(pos, endIndex);
+        const start = node.getStart();
+        const end = node.getEnd();
+        const ignoreText = code.substr(start - 20, 20).indexOf('/* ignore */') > -1
+        if (templateContent.match(DOUBLE_BYTE_REGEX) && !ignoreText) {
           const range = { start, end };
           matches.push({
             type: 'jsTemplate',
@@ -106,12 +109,12 @@ function findTextInTs(code: string, fileName: string) {
         break;
       }
       case ts.SyntaxKind.NoSubstitutionTemplateLiteral: {
-        const { pos, end } = node;
-        const templateContent = code.slice(pos, end);
-
-        if (templateContent.match(DOUBLE_BYTE_REGEX)) {
-          const start = node.getStart();
-          const end = node.getEnd();
+        const { pos, end: endIndex } = node;
+        const templateContent = code.slice(pos, endIndex);
+        const start = node.getStart();
+        const end = node.getEnd();
+        const ignoreText = code.substr(start - 20, 20).indexOf('/* ignore */') > -1
+        if (templateContent.match(DOUBLE_BYTE_REGEX) && !ignoreText) {
           const range = { start, end };
           matches.push({
             range,
@@ -195,15 +198,6 @@ function findTextInHtml(code) {
   }
   return matches;
 }
-/*
-* 匹配文案开始结束标签
-* @param {String} source 源字符串
-* @param {Number} start 开始位置索引值
-* @param {String} startCode 开始标签字符
-*/
-function checkCloseLabel (source, start, end, startCode, endCode? ) {
-  return source.substr(start, 1) === startCode && source.substr(end, 1) === (endCode || startCode)
-}
 
 /*
 * 从一个字符串中过滤出 文案的内容、位置信息、来源类型
@@ -230,7 +224,6 @@ function filterTextInString(str: string, sIndex: number) {
     if (exTemplate) {
       // 判断模板字符串是否包含变量插值
       // 如果模板字符串中无变量应用则直接输入字符串
-      // console.log(exTemplate[1], start)
       const itemList = filterTemplateStr(templateText, sIndex)
       matches.push(...itemList)
     }
@@ -247,14 +240,14 @@ function filterTextInString(str: string, sIndex: number) {
 */
 function getAllChildrenContent(obj) {
   if (!obj) return []
-  return obj.children && obj.children.reduce((prev, curr) => {
-    const { start, end } = curr
+  return (obj.children || []).reduce((prev, curr) => {
+    curr = curr.block || curr
+    const { start } = curr
     // 提取 attrs 中文案
     const attrsMap = curr.rawAttrsMap
     const attrsList = filterAttrsText(attrsMap)
     prev = prev.concat(attrsList)
-
-    const itemText = curr.text && curr.text.match(DOUBLE_BYTE_REGEX) && curr.text.match(DOUBLE_BYTE_REGEX).reduce((prev, curr) => {
+    const itemText = !curr.ifConditions && curr.text && curr.text.match(DOUBLE_BYTE_REGEX) && curr.text.match(DOUBLE_BYTE_REGEX).reduce((prev, curr) => {
       return prev.concat(curr)
     }, [])
     // 获取文案信息 并计算的得出每段文案起始终止位置
@@ -263,7 +256,15 @@ function getAllChildrenContent(obj) {
     if (itemText) {
       itemList = filterTextInString(curr.text, start)
     }
-    return curr.children ? prev.concat(getAllChildrenContent(curr)) : prev.concat(itemText ? itemList : [])
+    // 处理 if 条件句中文案提取
+    if (curr.ifConditions) {
+      curr.ifConditions.forEach(item => {
+        if (item.block) {
+          prev = prev.concat(getAllChildrenContent(item.block))
+        }
+      })
+    }
+    return (!curr.ifConditions && curr.children) ? prev.concat(getAllChildrenContent(curr)) : prev.concat(itemText ? itemList : [])
   }, [])
 }
 
@@ -283,9 +284,8 @@ function findTextInVue(code: string, filename: string) {
   const vueAst = vueObject.ast
   let textList = getAllChildrenContent(vueAst)
   const sfc = vueCompiler.parseComponent(code.toString());
-  const scriptText = findTextInVueTs(sfc.script.content, filename, sfc.script.start)
+  const scriptText = sfc.script ? findTextInVueTs(sfc.script.content, filename, sfc.script.start) : []
   textList = textList.concat(scriptText)
-  // console.log(sfc.script.content.match(DOUBLE_BYTE_REGEX))
   textList.sort((prev, next) => {
     return prev.start - next.start
   })

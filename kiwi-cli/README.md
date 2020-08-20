@@ -24,14 +24,14 @@ Kiwi 的 CLI 工具
 
   // 语言目录名，注意连线和下划线
   "srcLang": "zh-CN",
-  "distLangs": ["en-US", "zh-TW"],
+  "distLangs": ["en", "zh-CN"],
 
   // import 语句，不同项目请自己配置
   "importI18N": "",
 
   // 可跳过的文件夹名或者文加名，比如docs、mock等
-  "ignoreDir": "",
-  "ignoreFile": ""
+  "include": "",
+  "exclude": ""
 }
 ```
 
