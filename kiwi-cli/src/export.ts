@@ -2,6 +2,7 @@
  * @author linhuiw
  * @desc 导出未翻译文件
  */
+import { getProjectVersion } from './utils'
 const xlsx = require('node-xlsx').default
 const fs = require('fs-extra')
 
@@ -11,7 +12,7 @@ require('ts-node').register({
   }
 });
 import { tsvFormatRows } from 'd3-dsv';
-import { getAllMessages, getProjectConfig, getAllData } from './utils';
+import { getAllMessages, getProjectConfig } from './utils';
 import * as _ from 'lodash';
 
 const sheetHeader = (lang?: string) => {
@@ -66,8 +67,9 @@ function exportMessages(file?: string, lang?: string) {
 
     const content = tsvFormatRows(messagesToTranslate);
     const sourceFile = file || `./export-${lang}`;
+    const version = getProjectVersion()
     fs.writeFileSync(sourceFile, content);
-    createXlsxFile(`export-${lang}`, messagesToTranslate)
+    createXlsxFile(`export-${lang}_${version}`, messagesToTranslate)
     console.log(`Exported ${lang} ${messagesToTranslate.length} message(s).`);
   });
 }

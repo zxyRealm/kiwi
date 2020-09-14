@@ -11,9 +11,14 @@
     "concurrentLimit": 10,
     "requestOptions": {}
   },
+  "excelOptions": {
+    "valueIndex": 2
+  },
   "importI18N": "import i18n from '@/locales'",
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "src/locales",
+    "src/extract"
   ],
   "include": [
     "src"

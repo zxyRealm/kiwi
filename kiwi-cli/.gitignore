@@ -21,6 +21,7 @@ yarn-error.log*
 
 package-lock.json
 .kiwi
-
+*.xlsx
+export-*
 export-en_US
 export-zh_TW

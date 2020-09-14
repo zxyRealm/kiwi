@@ -11,6 +11,7 @@ import { compareExcel } from './excel-compare'
 import { findUnUsed } from './unused';
 import { mockLangs } from './mock';
 import { extractAll } from './extract/extract';
+import { update } from './update'
 import * as ora from 'ora';
 
 /**
@@ -33,6 +34,7 @@ commander
   .option('--export [file] [lang]', '导出未翻译的文案')
   .option('--excel [langDir] [lang]', '导出 excel')
   .option('--compare [originFile] [targetFile]', '对比导出 key 差异')
+  .option('--update [file] [lang]', '更新语言包')
   .option('--sync', '同步各种语言的文案')
   .option('--mock', '使用 Google 翻译')
   .option('--unused', '导出未使用的文案')
@@ -104,6 +106,18 @@ if (commander.export) {
 if (commander.sync) {
   spining('文案同步', () => {
     sync();
+  });
+}
+
+if (commander.update) {
+  spining('文案更新', () => {
+    if (commander.update === true && commander.args.length === 0) {
+      update();
+    } else if (commander.args.length) {
+      update(commander.update, ...commander.args);
+    } else {
+      console.warn('请按格式输入：--update [file] [lang]');
+    }
   });
 }
 

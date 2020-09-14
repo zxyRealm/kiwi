@@ -6,13 +6,18 @@ import * as path from 'path';
 import * as _ from 'lodash';
 import * as fs from 'fs';
 import { PROJECT_CONFIG, KIWI_CONFIG_FILE } from './const';
-import translate, { parseMultiple } from 'google-translate-open-api'
+import translate, { parseMultiple, Options } from 'google-translate-open-api'
 import * as ts from 'typescript'
 import { readFiles } from './extract/file'
+import * as slash from 'slash2';
+import { RecursiveTemplateAstVisitor } from '@angular/compiler';
+
+const xlsx = require('node-xlsx').default
+
 const log = console.log
 const chalk = require('chalk')
-const dirs = require('node-dir')
 
+// 查询指定文件
 function lookForFiles(dir: string, fileName: string): string {
   const files = fs.readdirSync(dir);
 
@@ -138,18 +143,18 @@ function withTimeout(promise, ms, text) {
 /*
  * 使用google翻译
  */
-function translateText(text, toLang) {
+function translateText (text, toLang) {
   const CONFIG = getProjectConfig();
-  const options = CONFIG.translateOptions || {};
+  const timeout = CONFIG.translateOptions.timeout
+  const options: Options = {
+    to: PROJECT_CONFIG.langMap[toLang] || 'en',
+    ...CONFIG.translateOptions
+  };
   const googleTranslate = translate;
 
   return withTimeout(
     new Promise((resolve, reject) => {
-      googleTranslate(text,
-        {
-          ...options,
-          to: PROJECT_CONFIG.langMap[toLang]
-        }).then(res => {
+      googleTranslate(text, options).then(res => {
           let translatedText =  Array.isArray(res.data) ? res.data[0] : res.data
           if (Array.isArray(text)) {
             translatedText = parseMultiple(translatedText)
@@ -161,7 +166,7 @@ function translateText(text, toLang) {
         }
       );
     }),
-    options.timeout,
+    timeout,
     text
   );
 }
@@ -222,7 +227,7 @@ function transformToObject(filename: string, filter?: Function): object {
           name,
           initializer
         }: { name; initializer } = node as ts.PropertyAssignment;
-        if (filter(initializer.text, name.text)) {
+        if (!filter || (typeof filter === 'function' && filter(initializer.text, name.text))) {
           keysObject[name.text] = initializer.text
         }
         break;
@@ -246,6 +251,35 @@ function getAllData (files: Array<string>, filter = (...arg) => true) {
   }, {})
 }
 
+// 读取 sheet 表中所有 key 值，默认第一列为 key
+function readSheetData (filename) {
+  if (!filename) return []
+  const config = getProjectConfig()
+  const { keyIndex, valueIndex } = { ...config.excelOptions }
+  const sheets = xlsx.parse(filename)
+  const keysObject = {}
+  sheets.forEach(sheet => {
+    const { data } = sheet
+    data.slice(1).forEach(row => {
+      if (keysObject[row[keyIndex]] !== undefined) {
+        console.error(`${keysObject[row[keyIndex]]} key 已存在`)
+      }
+      keysObject[row[keyIndex]] = row[valueIndex]
+    })
+  })
+  return keysObject
+}
+
+// 获取项目 package.json 总 version 信息
+function getProjectVersion() {
+  const packageFilePath = `${slash(process.cwd())}/package.json`
+  if (fs.existsSync(packageFilePath)) {
+    return JSON.parse(fs.readFileSync(packageFilePath, { encoding: 'utf8'})).version
+  } else {
+    return ''
+  }
+}
+
 export {
   getKiwiDir,
   getLangDir,
@@ -261,5 +295,7 @@ export {
   lookForFiles,
   replaceOccupyStr,
   transformToObject,
-  getAllData
+  getAllData,
+  readSheetData,
+  getProjectVersion
 };

@@ -14,7 +14,8 @@ import * as slash from 'slash2';
  * @param  {string} dir 路径
  * @param {ignoreDirectory} 忽略文件夹 {ignoreFile} 忽略的文件
  */
-function getSpecifiedFiles(dir, includeOption = '', excludeOption = ''): string[] {
+// declare 
+function getSpecifiedFiles(dir, includeOption, excludeOption): string[] {
   const files = readFiles(dir)
   return files
     .map(f => slash(f))
@@ -63,16 +64,20 @@ function getSpecifiedFiles(dir, includeOption = '', excludeOption = ''): string[
 function readFiles(dir, match?) {
   const fileList = []
   const readFile = (directory) => {
-    const files = fs.readdirSync(directory);
-    files.forEach((item) => {
-      var fullPath = path.join(directory, item);
-      const stat = fs.statSync(fullPath);
-      if (stat.isDirectory()) {
-        readFile(path.join(directory, item));  //递归读取文件
-      } else if ((match && match.test && match.test(fullPath)) || !match) {
-        fileList.push(fullPath)
-      }
-    });
+    try {
+      const files = fs.readdirSync(directory);
+      files.forEach((item) => {
+        var fullPath = path.join(directory, item);
+        const stat = fs.statSync(fullPath);
+        if (stat.isDirectory()) {
+          readFile(path.join(directory, item));  //递归读取文件
+        } else if ((match && match.test && match.test(fullPath)) || !match) {
+          fileList.push(fullPath)
+        }
+      });
+    } catch (error) {
+      // console.error('read dir', error)
+    }
   }
   readFile(dir)
   return fileList

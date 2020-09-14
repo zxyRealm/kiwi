@@ -228,7 +228,8 @@ function filterTextInString(str: string, sIndex: number) {
       matches.push(...itemList)
     }
     // 纯静态文案匹配
-    matches.push(...filterStaticStr(text, startIndex))
+    const staticText = replaceOccupyStr(templateText, /`(.*?)`/g)
+    matches.push(...filterStaticStr(staticText, startIndex))
 
   }
   matchText(str, sIndex)

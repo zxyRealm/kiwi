@@ -104,6 +104,7 @@ export function filterTemplateStr(str: string, sIndex: number, type?: string) {
       matchText(exTemplate[1], start)
       const nextStart = ex.index + ex[0].length
       matchTempItem(text.substr(nextStart), startIndex + nextStart)
+      matches.push(...filterTempStr(exTemplate[1], start))
     }
   }
   matchTempItem(str, sIndex)
@@ -140,6 +141,7 @@ export function filterStaticStr(str: string, sIndex: number) {
   const matches = []
   // 不存在{{}}
   const matchTemp = str.match(/\{\{(.*?)\}\}/)
+  console.log('static str', str)
   if (!matchTemp && str.match(DOUBLE_BYTE_REGEX)) {
     const start = sIndex + str.length - str.trimLeft().length
     matches.push({
@@ -148,7 +150,33 @@ export function filterStaticStr(str: string, sIndex: number) {
       start,
       end: start + str.trim().length
     })
+  } else if (matchTemp) {
+    matches.push(...filterTempStr(str, sIndex))
   }
+  return matches
+}
+
+// {{}} 、 `` 中静态文案
+export function filterTempStr(str: string, sIndex: number) {
+  const matches = []
+  const matchTempText = (str: string, startIndex = 0) => {
+    const matchTempStatic = str.match(/('|")(.+?)('|")/)
+    if (matchTempStatic && matchTempStatic[2] && matchTempStatic[2].match(DOUBLE_BYTE_REGEX)) {
+      const start = startIndex + matchTempStatic.index
+      const text = matchTempStatic[2]
+      matches.push({
+        type: 'tempStatic',
+        text,
+        start,
+        end: start + text.length + 2
+      })
+      const nextText = str.substr(matchTempStatic.index + text.length + 2)
+      if (nextText) {
+        matchTempText(nextText, start + text.length + 2)
+      }
+    }
+  }
+  matchTempText(str, sIndex)
   return matches
 }
 

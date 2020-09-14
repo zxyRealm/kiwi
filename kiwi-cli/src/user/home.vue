@@ -38,6 +38,17 @@
         <el-button type="primary" @click="submit">{{$t('common_add')}}</el-button>
       </div>
     </el-form>
+    <ul>
+      <li>{{`${show ? '这里的条件句' : '我出现啦哟'}`}}</li>
+      <li>
+        <template v-if="show">
+          <span>{{show ? $t('我是条件句的第一部分') : isDispaly ? ' 三目运算符' : isDispaly ? '我是第二个条件判断哦' : '第三节出来啦！不要说什么不可能！别人的代码管不住呀！'}}</span>
+        </template>
+        <template v-else>
+          <p>{{$t('user_home_iAmTheSecond')}}</p>
+        </template>
+      </li>
+    </ul>
   </el-dialog>
 </template>
 
@@ -74,6 +85,7 @@ export default {
     }
     return {
       show: false,
+      isDispaly: false,
       rules: {
         name: [
           { required: true, validator: name2Rule, trigger: 'blur' }

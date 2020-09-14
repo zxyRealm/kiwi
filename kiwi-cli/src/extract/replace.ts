@@ -7,7 +7,7 @@ import * as fs from 'fs-extra';
 import * as _ from 'lodash';
 import * as prettier from 'prettier';
 import * as ts from 'typescript';
-import { readFile, writeFile } from './file';
+import { readFile, readFiles, writeFile } from './file';
 import { getLangData } from './getLangData';
 import { getProjectConfig, getLangDir, getAllMessages } from '../utils';
 import * as slash from 'slash2';
@@ -17,12 +17,19 @@ const chalk = require('chalk')
 const CONFIG = getProjectConfig();
 const srcLangDir = getLangDir(CONFIG.srcLang);
 
-function updateLangFiles(keyValue, text, validateDuplicate, filePath) {
+// 更新语言包文件
+/*
+ * type 更新类型
+      extract: 默认值，扫描更新，新生成文件名根据 keyValue 进行处理
+      sync: 同步更新，新生成文件直接应用 filePath
+*/
+
+export function updateLangFiles(keyValue, text, validateDuplicate, filePath, type?: string, lang?: string) {
   const isVueFile = _.endsWith(filePath, '.vue') || _.endsWith(filePath, '.js')
   let [, filename, ...restPath] = keyValue.split('.');
   let fullKey = restPath.join('.');
   let targetFilename = `${srcLangDir}/${filename}.ts`;
-  
+  const isDefaultType = (!type || type === 'extract')
   if (isVueFile) {
     // 根据项目文件生成语言文件目录，以 src 为基础目录在语言包文件进行映射，目录层级大于3时进行合并
     const files = slash(filePath).split('/')
@@ -30,23 +37,26 @@ function updateLangFiles(keyValue, text, validateDuplicate, filePath) {
     srcFiles = srcFiles.length > 4 ? srcFiles.slice(0, 4) : srcFiles
     filename = srcFiles.join('/').lastIndexOf('.') === -1 ? srcFiles.join('/') : srcFiles.join('/').substring(0, srcFiles.join('/').lastIndexOf('.'))
     fullKey = keyValue.replace('-', '_');
-    targetFilename = slash(`${srcLangDir}/${filename}.js`);
+    targetFilename = !isDefaultType ? filePath : slash(`${srcLangDir}/${filename}.js`);
   }
   if (!isVueFile && !_.startsWith(keyValue, 'I18N.')) {
     return;
   }
 
-  const allMessages = getAllMessages()
-  if (allMessages[fullKey] !== undefined) {
-    if (allMessages[fullKey] !== text) {
-      throw new Error(chalk.red(`重复 key 值  ${fullKey}  ${text}`))
+  if (isDefaultType) {
+    const allMessages = getAllMessages()
+    if (allMessages[fullKey] !== undefined) {
+      if (allMessages[fullKey] !== text) {
+        throw new Error(chalk.red(`重复 key 值  ${fullKey}  ${text}`))
+      }
+      return
     }
-    return
   }
+ 
 
   if (!fs.existsSync(targetFilename)) {
     fs.outputFileSync(targetFilename, generateNewLangFile(fullKey, text));
-    addImportToMainLangFile(filename);
+    addImportToMainLangFile(filename, lang);
     console.log(`成功新建语言文件 ${targetFilename}`);
   } else {
     // 清除 require 缓存，解决手动更新语言文件后再自动抽取，导致之前更新失效的问题
@@ -68,7 +78,7 @@ function updateLangFiles(keyValue, text, validateDuplicate, filePath) {
   }
 }
 
-/**
+/*
  * 使用 Prettier 格式化文件
  * @param fileContent
  */
@@ -95,42 +105,47 @@ function generateNewLangFile(key, value) {
   return prettierFile(`export default ${JSON.stringify(obj, null, 2)}`);
 }
 
-function addImportToMainLangFile(newFilename) {
+function addImportToMainLangFile(newFilename, lang?: string) {
   let mainContent = '';
-  const filePath = `${srcLangDir}/index.js`
-  const exportName = newFilename
-    .replace(/[-_]/g, '/').split('/')
-    .filter(i => i)
-    .map(str => {
-      return str.substr(0, 1).toLocaleUpperCase() + str.substr(1)
-    }).join('')
-  if (fs.existsSync(filePath)) {
-    mainContent = fs.readFileSync(filePath, 'utf8');
-    mainContent = mainContent.replace(/^(\s*import.*?;?)$/m, `$1\nimport ${exportName} from './${newFilename}'`);
-    if (/(}\);?)/.test(mainContent)) {
-      if (/,\n(}\);?)/.test(mainContent)) {
-        /** 最后一行包含,号 */
-        mainContent = mainContent.replace(/(}\))/, `  ...${exportName},\n$1`);
-      } else {
-        /** 最后一行不包含,号 */
-        mainContent = mainContent.replace(/\n(}\))/, `,\n  ...${exportName},\n$1`);
-      }
-    }
-    // 兼容 export default { common };的写法
-    if (/(};?)/.test(mainContent)) {
-      if (/,\n(};?)/.test(mainContent)) {
-        /** 最后一行包含,号 */
-        mainContent = mainContent.replace(/(})/, `  ...${exportName},\n$1`);
-      } else {
-        /** 最后一行不包含,号 */
-        mainContent = mainContent.replace(/\n(})/, `,\n  ...${exportName},\n$1`);
-      }
-    }
+  const filePath = `${getLangDir(lang) || srcLangDir}/index.js`
+  console.log('dir', srcLangDir)
+  if (lang) {
+    mainContent = readFile(`${srcLangDir}/index.js`)
+    console.log('main', mainContent)
   } else {
-    mainContent = `import ${exportName} from './${newFilename}'\n\nexport default {\n ...${exportName},\n}`;
+    const exportName = newFilename
+      .replace(/[-_]/g, '/').split('/')
+      .filter(i => i)
+      .map(str => {
+        return str.substr(0, 1).toLocaleUpperCase() + str.substr(1)
+      }).join('')
+    if (fs.existsSync(filePath)) {
+      mainContent = fs.readFileSync(filePath, 'utf8');
+      mainContent = mainContent.replace(/^(\s*import.*?;?)$/m, `$1\nimport ${exportName} from './${newFilename}'`);
+      if (/(}\);?)/.test(mainContent)) {
+        if (/,\n(}\);?)/.test(mainContent)) {
+          /** 最后一行包含,号 */
+          mainContent = mainContent.replace(/(}\))/, `  ...${exportName},\n$1`);
+        } else {
+          /** 最后一行不包含,号 */
+          mainContent = mainContent.replace(/\n(}\))/, `,\n  ...${exportName},\n$1`);
+        }
+      }
+      // 兼容 export default { common };的写法
+      if (/(};?)/.test(mainContent)) {
+        if (/,\n(};?)/.test(mainContent)) {
+          /** 最后一行包含,号 */
+          mainContent = mainContent.replace(/(})/, `  ...${exportName},\n$1`);
+        } else {
+          /** 最后一行不包含,号 */
+          mainContent = mainContent.replace(/\n(})/, `,\n  ...${exportName},\n$1`);
+        }
+      }
+    } else {
+      mainContent = `import ${exportName} from './${newFilename}'\n\nexport default {\n ...${exportName},\n}`;
+    }
   }
-
-  fs.writeFileSync(filePath, prettierFile(mainContent));
+  fs.outputFileSync(filePath, prettierFile(mainContent));
 }
 
 /**
@@ -205,7 +220,7 @@ function createImportI18N(filePath) {
   return updateCode;
 }
 
-/**
+/*
  * 更新文件
  * @param filePath 当前文件路径
  * @param arg  目标字符串对象
@@ -277,6 +292,9 @@ function replaceInVue(filePath, arg, val) {
   const { start, end } = arg.range
   let finalReplaceVal = val
   switch (arg.type) {
+    case 'tempStatic':
+      finalReplaceVal = `$t('${val}')`
+      break
     case 'static':
       finalReplaceVal = `{{\$t('${val}')}}`
       break

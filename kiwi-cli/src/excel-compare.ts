@@ -26,7 +26,6 @@ function readSheetData (filename, index = 0) {
       keysList.push(row[index])
     })
   })
-
   return keysList
 }
 

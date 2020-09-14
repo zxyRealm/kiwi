@@ -3,7 +3,6 @@ const path = require('path')
 const slash = require('slash2');
 const dirs = require('node-dir')
 const xlsx = require('node-xlsx').default
-import * as ts from 'typescript'
 import {
   getProjectConfig,
   getAllData
