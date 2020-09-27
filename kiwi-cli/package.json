@@ -1,6 +1,6 @@
 {
   "name": "uniubi-kiwi-clis",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "a cli for kiwi",
   "main": "dist/index.js",
   "scripts": {
@@ -19,7 +19,7 @@
   "bin": {
     "kiwi": "dist/index.js"
   },
-  "author": "linhuiw",
+  "author": "zhewei",
   "license": "ISC",
   "bugs": {
     "url": "http://gitlab.uniubi.com/fe-team/x/uniubi-kiwi/issues"

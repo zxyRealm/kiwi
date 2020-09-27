@@ -141,7 +141,6 @@ export function filterStaticStr(str: string, sIndex: number) {
   const matches = []
   // 不存在{{}}
   const matchTemp = str.match(/\{\{(.*?)\}\}/)
-  console.log('static str', str)
   if (!matchTemp && str.match(DOUBLE_BYTE_REGEX)) {
     const start = sIndex + str.length - str.trimLeft().length
     matches.push({

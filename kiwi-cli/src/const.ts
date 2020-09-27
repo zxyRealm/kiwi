@@ -65,7 +65,6 @@ export const PROJECT_CONFIG: Config = {
     ['en_US']: 'en'
   },
   zhIndexFile: `import common from './common';
-
   export default {
     ...common
   }`,

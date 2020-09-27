@@ -10,7 +10,6 @@ import translate, { parseMultiple, Options } from 'google-translate-open-api'
 import * as ts from 'typescript'
 import { readFiles } from './extract/file'
 import * as slash from 'slash2';
-import { RecursiveTemplateAstVisitor } from '@angular/compiler';
 
 const xlsx = require('node-xlsx').default
 
@@ -61,7 +60,6 @@ function getProjectConfig() {
  */
 function getKiwiDir() {
   const config = getProjectConfig();
-
   if (config) {
     return config.kiwiDir;
   }
@@ -72,8 +70,8 @@ function getKiwiDir() {
  * @param lang
  */
 function getLangDir(lang) {
-  const langsDir = getKiwiDir();
-  return path.resolve(langsDir, lang);
+  const { kiwiDir, srcLang } = getProjectConfig();
+  return path.resolve(kiwiDir, lang || srcLang);
 }
 
 /**

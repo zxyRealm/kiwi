@@ -108,10 +108,8 @@ function generateNewLangFile(key, value) {
 function addImportToMainLangFile(newFilename, lang?: string) {
   let mainContent = '';
   const filePath = `${getLangDir(lang) || srcLangDir}/index.js`
-  console.log('dir', srcLangDir)
   if (lang) {
     mainContent = readFile(`${srcLangDir}/index.js`)
-    console.log('main', mainContent)
   } else {
     const exportName = newFilename
       .replace(/[-_]/g, '/').split('/')
