@@ -1,6 +1,6 @@
 {
   "name": "uniubi-kiwi-clis",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "a cli for kiwi",
   "main": "dist/index.js",
   "scripts": {
