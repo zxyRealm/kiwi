@@ -156,8 +156,11 @@ function translateText (text, toLang) {
           let translatedText =  Array.isArray(res.data) ? res.data[0] : res.data
           if (Array.isArray(text)) {
             translatedText = parseMultiple(translatedText)
-          }
+        }
+        setTimeout(() => {
           resolve(translatedText)
+        }, 500)
+          // resolve(translatedText)
         }).catch(error => {
           log('translate error', chalk(error.message))
           reject(error)

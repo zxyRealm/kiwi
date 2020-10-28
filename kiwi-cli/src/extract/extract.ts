@@ -5,14 +5,12 @@
 import * as _ from 'lodash';
 import * as randomstring from 'randomstring';
 import * as slash from 'slash2';
-import * as path from 'path';
 import { getSpecifiedFiles, readFile, writeFile } from './file';
 import { findChineseText } from './findChineseText';
 import { getSuggestLangObj } from './getLangData';
 import { translateText, findMatchKey, findMatchValue } from '../utils';
 import { replaceAndUpdate, hasImportI18N, createImportI18N } from './replace';
 import { getProjectConfig } from '../utils';
-import { filter } from 'lodash';
 const chalk = require('chalk')
 const log = console.log
 const CONFIG = getProjectConfig();

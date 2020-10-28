@@ -7,7 +7,7 @@ import * as fs from 'fs-extra';
 import * as _ from 'lodash';
 import * as prettier from 'prettier';
 import * as ts from 'typescript';
-import { readFile, readFiles, writeFile } from './file';
+import { readFile, writeFile } from './file';
 import { getLangData } from './getLangData';
 import { getProjectConfig, getLangDir, getAllMessages } from '../utils';
 import * as slash from 'slash2';

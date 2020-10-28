@@ -40,7 +40,6 @@ export function findTextInVueTs(code: string, fileName: string, startNum: number
         const start = node.getStart();
         const end = node.getEnd();
         const ignoreText = code.substr(start - 20, 20).indexOf('/* ignore */') > -1
-        // console.log()
         if (templateContent.match(DOUBLE_BYTE_REGEX) && !ignoreText) {
           
           /** 加一，减一的原因是，去除`号 */
@@ -49,7 +48,6 @@ export function findTextInVueTs(code: string, fileName: string, startNum: number
           matches.push(...texts);
         }
         break;
-      
       }
     }
     ts.forEachChild(node, visit);

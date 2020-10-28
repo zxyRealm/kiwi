@@ -6,7 +6,6 @@
 import * as ts from 'typescript';
 import * as compiler from '@angular/compiler';
 import * as vueCompiler from 'vue-template-compiler';
-import { transferI18n, findVueText } from './babelUtil';
 import {
   findTextInVueTs,
   filterStaticStr,
@@ -241,6 +240,7 @@ function filterTextInString(str: string, sIndex: number) {
 */
 function getAllChildrenContent(obj) {
   if (!obj) return []
+  obj.scopedSlots ? obj = obj.scopedSlots['"default"'] : obj
   return (obj.children || []).reduce((prev, curr) => {
     curr = curr.block || curr
     const { start } = curr
@@ -264,6 +264,8 @@ function getAllChildrenContent(obj) {
           prev = prev.concat(getAllChildrenContent(item.block))
         }
       })
+    } else if (curr.scopedSlots) {
+      prev = prev.concat(getAllChildrenContent(curr.scopedSlots['"default"']))
     }
     return (!curr.ifConditions && curr.children) ? prev.concat(getAllChildrenContent(curr)) : prev.concat(itemText ? itemList : [])
   }, [])
