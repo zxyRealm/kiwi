@@ -1,12 +1,19 @@
 <template>
   <div>
-    <template slot-scope="{ title }">
-      {{`${$t('user_home_father')} ${title}`}}
-      <template slot-scope="{ subTitle }">
-        {{`${$t('user_home_subset')}${subTitle}`}}
+    <template slot-scope="{ name }">
+      {{`${$t('这是一个 slot-scope template')} ${name}`}}
+      <template slot="title">
+        {{`${$t('这是一个内嵌的插槽')}`}}
       </template>
-      <div class="text">{{$t('user_home_thisIsNormalText')}}</div>
-      <div :title="$t('user_home_attributeText')"></div>
+      <template slot="content">
+        {{`${$t('这是一个content插槽')}`}}
+      </template>
+      <template slot="footer">
+        {{`${$t('这是一个footer插槽')}`}}
+      </template>
+      <template slot-scope="{ title }">
+        {{`${$t(`这是一个内嵌的 slot-scope 插槽 {title}`, { title })}`}}
+      </template>
     </template>
   </div>
 </template>

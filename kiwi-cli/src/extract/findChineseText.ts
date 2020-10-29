@@ -240,7 +240,7 @@ function filterTextInString(str: string, sIndex: number) {
 */
 function getAllChildrenContent(obj) {
   if (!obj) return []
-  obj.scopedSlots ? obj = obj.scopedSlots['"default"'] : obj
+  // obj.scopedSlots && obj.scopedSlots['"default"'] ? obj = obj.scopedSlots['"default"'] : obj
   return (obj.children || []).reduce((prev, curr) => {
     curr = curr.block || curr
     const { start } = curr
@@ -264,12 +264,25 @@ function getAllChildrenContent(obj) {
           prev = prev.concat(getAllChildrenContent(item.block))
         }
       })
-    } else if (curr.scopedSlots) {
-      prev = prev.concat(getAllChildrenContent(curr.scopedSlots['"default"']))
     }
+
+    prev = prev.concat(scanSlotScopedText(curr))
+
     return (!curr.ifConditions && curr.children) ? prev.concat(getAllChildrenContent(curr)) : prev.concat(itemText ? itemList : [])
   }, [])
 }
+
+// 扫描处理 slot-scope 结构中文案
+function scanSlotScopedText(obj) {
+  const ssTemplate = obj && obj.scopedSlots && obj.scopedSlots['"default"']
+  if (!obj || !ssTemplate) {
+    return []
+  } else {
+    return getAllChildrenContent(ssTemplate).concat(scanSlotScopedText(ssTemplate))
+  }
+
+}
+
 
 
 function findTextInVue(code: string, filename: string) {
