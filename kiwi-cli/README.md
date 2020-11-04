@@ -6,6 +6,8 @@ Kiwi 的 CLI 工具
 
 > yarn global add kiwi-clis
 
+
+
 > 推荐与[🐤 Kiwi-国际化全流程解决方案](https://github.com/alibaba/kiwi)结合使用
 
 ## CLI 参数
@@ -30,6 +32,11 @@ Kiwi 的 CLI 工具
       "keyIndex": 0,
       "valueIndex": 1
   },
+   // google-translate-open-api 插件配置项
+  "translateOptions": {
+       "browersUrl": "https://cors-anywhere.herokuapp.com/", // 默认在线代理地址
+       "browers": true // 是否开在线代理（google翻译存在机器人检测机制，长时间使用会被禁用）
+  },
   // import 语句，不同项目请自己配置
   "importI18N": "",
 
@@ -38,6 +45,8 @@ Kiwi 的 CLI 工具
   "exclude": ["node_modules"]
 }
 ```
+
+
 
 ### kiwi `--extract`
 
@@ -49,6 +58,12 @@ kiwi --extract [dirPath]
 
 ![批量替换](https://raw.githubusercontent.com/alibaba/kiwi/master/kiwi-cli/public/extract.gif)
 
+
+
+> 长时间使用会存在 google 翻译被禁用的情况， 如出现 429 等错误。 此时的处理方式可以选择关闭在线代理或者更换在线代理地址
+
+
+
 ### kiwi `--import`
 
 导入翻译文案，将翻译人员翻译得文案，导入到项目中
@@ -57,6 +72,8 @@ kiwi --extract [dirPath]
 # 导入翻译后的文案
 kiwi --import [filePath] en-US
 ```
+
+
 
 ### kiwi `--export`
 
@@ -67,22 +84,21 @@ kiwi --export [filePath] en-US
 
 导出未翻译的文案
 
+
+
 ### kiwi `--excel`
 
 将语言包按照语言类型导出成单个excel
+
+
 
 ### kiwi `--compare`
 
 根据导出的 excel, 对比不同语言类型和基础语言包之间的差异
 
+
+
 ### kiwi  `--update`
 
 根据 excel 更新语言包中 key 对应的 value 值，默认会先将其他语言包中 key 与基础语言包进行一次同步处理
 
-### kiwi `--sync`
-
-同步各种语言的文案，同步未翻译文件
-
-### kiwi `--mock`
-
-使用 Google 翻译，翻译未翻译的文案
