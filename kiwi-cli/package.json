@@ -1,6 +1,6 @@
 {
   "name": "uniubi-kiwi-clis",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "a cli for kiwi",
   "main": "dist/index.js",
   "scripts": {
@@ -33,7 +33,7 @@
     "@types/node": "^10.12.14",
     "chalk": "^4.1.0",
     "commander": "^2.19.0",
-    "d3-dsv": "^1.0.10",
+    "d3-dsv": "^1.2.0",
     "fs-extra": "^7.0.1",
     "globby": "^7.1.1",
     "google-translate": "^3.0.0",

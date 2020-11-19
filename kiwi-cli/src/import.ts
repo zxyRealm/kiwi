@@ -32,7 +32,7 @@ function readSheetData (filename, index = 2) {
 }
 
 function getMessagesToImport(file: string) {
-  const content = fs.readFileSync(file).toString();
+  const content = fs.readFileSync(file, { encoding: 'utf8' }).toString();
   const messages = tsvParseRows(content, ([key, value]) => {
     try {
       // value 的形式和 JSON 中的字符串值一致，其中的特殊字符是以转义形式存在的，
@@ -73,6 +73,8 @@ function writeMessagesToFile(messages: any, file: string, lang: string) {
 
 function importMessages(file: string, lang: string) {
   let messagesToImport = getMessagesToImport(file);
+  // let messagesToImport = readSheetData(file);
+  console.log('import message', messagesToImport)
   const allMessages = getAllMessages(CONFIG.srcLang);
   messagesToImport = _.pickBy(messagesToImport, (message, key) => allMessages.hasOwnProperty(key));
   const keysByFiles = _.groupBy(Object.keys(messagesToImport), key => key.split('.')[0]);

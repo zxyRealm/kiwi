@@ -73,8 +73,9 @@ export function updateLangFiles(keyValue, text, validateDuplicate, filePath, typ
     }
     // \n 会被自动转义成 \\n，这里转回来
     text = text.replace(/\\n/gm, '\n');
-    _.set(obj, fullKey, text);
-    fs.outputFileSync(targetFilename, prettierFile(`export default ${JSON.stringify(obj, null, 2)}`));
+    const data = { ...obj, [fullKey]: text }
+    // _.set(obj, fullKey, text);
+    fs.outputFileSync(targetFilename, prettierFile(`export default ${JSON.stringify(data, null, 2)}`));
   }
 }
 
@@ -100,7 +101,7 @@ function prettierFile(fileContent) {
 }
 
 function generateNewLangFile(key, value) {
-  const obj = _.set({}, key, value);
+  const obj = {[key]: value};
 
   return prettierFile(`export default ${JSON.stringify(obj, null, 2)}`);
 }

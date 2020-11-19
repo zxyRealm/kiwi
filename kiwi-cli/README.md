@@ -4,11 +4,21 @@ Kiwi 的 CLI 工具
 
 ## 如何使用
 
-> yarn global add kiwi-clis
+> yarn global add uniubi-kiwi-clis
 
 
 
 > 推荐与[🐤 Kiwi-国际化全流程解决方案](https://github.com/alibaba/kiwi)结合使用
+
+```txt
+# .gitignore 文件中添加以下过滤规则
+
+/*.xlsx
+export-*.txt
+/export-excel
+/export-excel-*
+
+```
 
 ## CLI 参数
 
@@ -63,18 +73,6 @@ kiwi --extract [dirPath]
 > 长时间使用会存在 google 翻译被禁用的情况， 如出现 429 等错误。 此时的处理方式可以选择关闭在线代理或者更换在线代理地址
 
 
-
-### kiwi `--import`
-
-导入翻译文案，将翻译人员翻译得文案，导入到项目中
-
-```shell script
-# 导入翻译后的文案
-kiwi --import [filePath] en-US
-```
-
-
-
 ### kiwi `--export`
 
 ```
@@ -100,5 +98,10 @@ kiwi --export [filePath] en-US
 
 ### kiwi  `--update`
 
-根据 excel 更新语言包中 key 对应的 value 值，默认会先将其他语言包中 key 与基础语言包进行一次同步处理
+```
+# 优先同步源语言包与其他语言包的 key: value 映射关系，根据 excel 更新语言包中 key 对应的 value 值，默认会先将其他语言包中 key 与基础语言包进行一次同步处理
+kiwi --update [filePath] [lang]
+
+```
+
 

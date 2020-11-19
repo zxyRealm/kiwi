@@ -18,6 +18,7 @@ interface Config {
     kiwiDir: string;
     configFile: string;
     srcLang: string;
+    zhLang: string;
     distLangs: string[];
     translateOptions: {
       tld?: Tld;
@@ -45,6 +46,7 @@ export const PROJECT_CONFIG: Config = {
     kiwiDir: './.kiwi',
     configFile: `./.kiwi/${KIWI_CONFIG_FILE}`,
     srcLang: 'zh-CN',
+    zhLang: 'zh-CN',
     distLangs: ['en', 'zh-CN'],
     translateOptions: {
       tld: 'cn',

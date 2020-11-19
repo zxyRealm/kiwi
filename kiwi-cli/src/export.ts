@@ -13,7 +13,9 @@ require('ts-node').register({
 });
 import { tsvFormatRows } from 'd3-dsv';
 import { getAllMessages, getProjectConfig } from './utils';
+import { DOUBLE_BYTE_REGEX } from './const'
 import * as _ from 'lodash';
+import { importMessages } from './import';
 
 const sheetHeader = (lang?: string) => {
   return [
@@ -42,16 +44,28 @@ function createXlsxFile (filename, sheetData) {
   fs.outputFileSync(filePath, buffer)
 }
 
+// 导出未翻译的 key: value 值
 function exportMessages(file?: string, lang?: string) {
   const CONFIG = getProjectConfig();
   const langs = lang ? [lang] : CONFIG.distLangs;
-
-  langs.map(lang => {
-    const allMessages = getAllMessages(CONFIG.srcLang);
+  const allMessages = getAllMessages(CONFIG.srcLang);
+  // 默认判断中文
+  const zhCnMessages = getAllMessages(CONFIG.zhLang)
+  console.log('src lang', CONFIG.srcLang, CONFIG.zhLang)
+  langs
+    .filter(item => ![CONFIG.srcLang, CONFIG.zhLang].includes(item))
+    .map(l => {
     const existingTranslations = getAllMessages(
-      lang,
-      (message, key) => CONFIG.srcLang === lang || !/[\u4E00-\u9FA5]/.test(allMessages[key]) || allMessages[key] !== message || allMessages[key] === undefined
+      l,
+      (message, key) => {
+        // 非中文语言包，value 值 和中文一致时视为当前语言未翻译
+        const unTranslateMsg = zhCnMessages[key] !== message
+        // 源语言包 value 值和其他语言 value 一致的 key 视为未翻译内容
+        const unOriginTranslateMsg  = allMessages[key] !== message
+        return (l !== CONFIG.zhLang && DOUBLE_BYTE_REGEX.test(allMessages[key])) || (unTranslateMsg && unOriginTranslateMsg) || allMessages[key] === undefined
+      }
     );
+    console.log('existing ', langs, l, Object.keys(allMessages).length, Object.keys(existingTranslations).length)
     const messagesToTranslate = Object.keys(allMessages)
       .filter(key => !existingTranslations.hasOwnProperty(key))
       .map(key => {
@@ -66,11 +80,11 @@ function exportMessages(file?: string, lang?: string) {
     }
 
     const content = tsvFormatRows(messagesToTranslate);
-    const sourceFile = file || `./export-${lang}`;
+    const sourceFile = file || `./export-${l}.txt`;
     const version = getProjectVersion()
     fs.writeFileSync(sourceFile, content);
-    createXlsxFile(`export-${lang}_${version}`, messagesToTranslate)
-    console.log(`Exported ${lang} ${messagesToTranslate.length} message(s).`);
+    createXlsxFile(`export-${l}_${version}`, messagesToTranslate)
+    console.log(`Exported ${l} ${messagesToTranslate.length} message(s).`);
   });
 }
 
