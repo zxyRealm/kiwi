@@ -34,7 +34,7 @@ export-*.txt
   // 配置文件目录，若调整配置文件，此处可手动修改
   "configFile": "./.kiwi/kiwi-config.json",
 
-  // 语言目录名，注意连线和下划线
+  // 映射语言包中个语言文件夹名称，注意连线和下划线
   "srcLang": "zh-CN",
   "distLangs": ["en", "zh-CN"],
   // --update 功能中读取 excel 时 key: value 对应列的索引
@@ -51,6 +51,8 @@ export-*.txt
   "importI18N": "",
 
   // 可跳过的文件夹名或者文加名，比如docs、mock等
+  // 文件内单行文本添加忽略规则 示例： /* ignore */ 忽略扫描的中文文案
+  // TIP: 忽略规则中空格不可省略，且忽略规则仅支持在 js/ts 中使用
   "include": ["src"],
   "exclude": ["node_modules"]
 }

@@ -14,7 +14,8 @@ import {
   filterAttrsText
 } from './findChineseInVue'
 import { DOUBLE_BYTE_REGEX, matchExpReg } from '../const'
-import { replaceOccupyStr } from '../utils'
+import { replaceOccupyStr, checkTextIsIgnore } from '../utils'
+import { stat } from 'fs';
 
 /**
  * 去掉文件中的注释
@@ -48,7 +49,7 @@ function findTextInTs(code: string, fileName: string) {
         const { text } = node as ts.StringLiteral;
         const start = node.getStart();
         const end = node.getEnd();
-        const ignoreText = code.substr(start - 20, 20).indexOf('/* ignore */') > -1
+        const ignoreText = checkTextIsIgnore(code, start)
 
         if (text.match(DOUBLE_BYTE_REGEX) && !ignoreText) {
           
@@ -95,7 +96,7 @@ function findTextInTs(code: string, fileName: string) {
         const templateContent = code.slice(pos, endIndex);
         const start = node.getStart();
         const end = node.getEnd();
-        const ignoreText = code.substr(start - 20, 20).indexOf('/* ignore */') > -1
+        const ignoreText = checkTextIsIgnore(code, start)
         if (templateContent.match(DOUBLE_BYTE_REGEX) && !ignoreText) {
           const range = { start, end };
           matches.push({
@@ -112,7 +113,7 @@ function findTextInTs(code: string, fileName: string) {
         const templateContent = code.slice(pos, endIndex);
         const start = node.getStart();
         const end = node.getEnd();
-        const ignoreText = code.substr(start - 20, 20).indexOf('/* ignore */') > -1
+        const ignoreText = checkTextIsIgnore(code, start)
         if (templateContent.match(DOUBLE_BYTE_REGEX) && !ignoreText) {
           const range = { start, end };
           matches.push({
@@ -155,6 +156,8 @@ function findTextInHtml(code) {
       if (nodeValue.charAt(0) === '"' || nodeValue.charAt(0) === "'") {
         isString = true;
       }
+      const ignoreText = checkTextIsIgnore(value, startOffset)
+      if (ignoreText) return
       const range = { start: startOffset, end: endOffset };
       matches.push({
         range,
@@ -172,6 +175,8 @@ function findTextInHtml(code) {
           start: { offset: startOffset },
           end: { offset: endOffset }
         } = valueSpan;
+        const ignoreText = checkTextIsIgnore(value, startOffset)
+        if (ignoreText) return
         const nodeValue = code.slice(startOffset, endOffset);
         const start = nodeValue.indexOf(match);
         const end = start + match.length;
@@ -205,11 +210,14 @@ function findTextInHtml(code) {
 * @return {array} 包含文案内容，位置信息，来源类型的数组
 */
 function filterTextInString(str: string, sIndex: number) {
-  if (!str) return []
+  const ignoreText = checkTextIsIgnore(str, sIndex)
+  if (!str || ignoreText) return []
   const matches = []
   // 优先获取模板字符串中内容
   const matchText = (text: string, startIndex = 0) => {
     // $t() 结构
+    const ignoreText = checkTextIsIgnore(text, startIndex)
+    if (ignoreText) return
     const exGlobal = text.match(matchExpReg())
     if (exGlobal) {
       matches.push(...filterGlobalStr(text, startIndex))
@@ -247,8 +255,9 @@ function getAllChildrenContent(obj) {
     // 提取 attrs 中文案
     const attrsMap = curr.rawAttrsMap
     const attrsList = filterAttrsText(attrsMap)
+    const ignoreText = checkTextIsIgnore(curr.text, start)
     prev = prev.concat(attrsList)
-    const itemText = !curr.ifConditions && curr.text && curr.text.match(DOUBLE_BYTE_REGEX) && curr.text.match(DOUBLE_BYTE_REGEX).reduce((prev, curr) => {
+    const itemText = !ignoreText && !curr.ifConditions && curr.text && curr.text.match(DOUBLE_BYTE_REGEX) && curr.text.match(DOUBLE_BYTE_REGEX).reduce((prev, curr) => {
       return prev.concat(curr)
     }, [])
     // 获取文案信息 并计算的得出每段文案起始终止位置

@@ -51,7 +51,6 @@ function exportMessages(file?: string, lang?: string) {
   const allMessages = getAllMessages(CONFIG.srcLang);
   // 默认判断中文
   const zhCnMessages = getAllMessages(CONFIG.zhLang)
-  console.log('src lang', CONFIG.srcLang, CONFIG.zhLang)
   langs
     .filter(item => ![CONFIG.srcLang, CONFIG.zhLang].includes(item))
     .map(l => {
@@ -65,7 +64,6 @@ function exportMessages(file?: string, lang?: string) {
         return (l !== CONFIG.zhLang && DOUBLE_BYTE_REGEX.test(allMessages[key])) || (unTranslateMsg && unOriginTranslateMsg) || allMessages[key] === undefined
       }
     );
-    console.log('existing ', langs, l, Object.keys(allMessages).length, Object.keys(existingTranslations).length)
     const messagesToTranslate = Object.keys(allMessages)
       .filter(key => !existingTranslations.hasOwnProperty(key))
       .map(key => {

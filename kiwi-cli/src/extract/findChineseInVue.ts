@@ -4,6 +4,7 @@ import {
   matchExpReg,
   I18N_GLOBAL_PROPERTY
 } from '../const'
+import { checkTextIsIgnore } from '../utils'
 
 export function findTextInVueTs(code: string, fileName: string, startNum: number) {
   const matches = [];
@@ -17,7 +18,7 @@ export function findTextInVueTs(code: string, fileName: string, startNum: number
         const { text } = node as ts.StringLiteral;
         const start = node.getStart();
         const end = node.getEnd();
-        const ignoreText = code.substr(start - 20, 20).indexOf('/* ignore */') > -1
+        const ignoreText = checkTextIsIgnore(code, start)
         if (text.match(DOUBLE_BYTE_REGEX) && !ignoreText) {
           
           /** 加一，减一的原因是，去除引号 */
@@ -39,11 +40,9 @@ export function findTextInVueTs(code: string, fileName: string, startNum: number
         templateContent = templateContent.toString().replace(/\$\{[^\}]+\}/, '')
         const start = node.getStart();
         const end = node.getEnd();
-        const ignoreText = code.substr(start - 20, 20).indexOf('/* ignore */') > -1
+        const ignoreText = checkTextIsIgnore(code, start)
         if (templateContent.match(DOUBLE_BYTE_REGEX) && !ignoreText) {
-          
           /** 加一，减一的原因是，去除`号 */
-
           const texts = filterTemplateStr(code.substring(start, end), startNum + start, 'jsTemplate')
           matches.push(...texts);
         }
@@ -135,7 +134,8 @@ export function filterGlobalStr(str: string, sIndex: number) {
 // TODO: 静态文案和 {{}} 共存时文案匹配
 // 匹配 text 中的静态文案
 export function filterStaticStr(str: string, sIndex: number) {
-  if (!str) return []
+  const ignoreText = checkTextIsIgnore(str, sIndex)
+  if (!str || ignoreText) return []
   const matches = []
   // 不存在{{}}
   const matchTemp = str.match(/\{\{(.*?)\}\}/)

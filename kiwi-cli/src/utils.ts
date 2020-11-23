@@ -281,6 +281,14 @@ function getProjectVersion() {
   }
 }
 
+/* TIP：不支持 vue 模板 html 内容中的忽略规则， 但可以通过将需要忽略的文案声明变量方式在js 文件中来注释
+*@param {string} code 源码字符串
+*@param {number} start 截取文本的其实位置
+*/
+function checkTextIsIgnore(code: string, start: number): boolean {
+  return code && (code.substr(start - 20, 20).indexOf('/* ignore */') > -1 || code.substr(start - 20, 20).indexOf('<!-- ignore -->') > -1)
+}
+
 export {
   getKiwiDir,
   getLangDir,
@@ -298,5 +306,6 @@ export {
   transformToObject,
   getAllData,
   readSheetData,
-  getProjectVersion
+  getProjectVersion,
+  checkTextIsIgnore
 };

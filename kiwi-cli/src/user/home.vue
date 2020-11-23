@@ -14,6 +14,7 @@
       <template slot-scope="{ title }">
         {{`${$t(`这是一个内嵌的 slot-scope 插槽 {title}`, { title })}`}}
       </template>
+      <!-- ignore --> {{text}}
     </template>
   </div>
 </template>
@@ -39,7 +40,8 @@ export default {
   data () {
     return {
       show: false,
-      isDispaly: false
+      isDispaly: false,
+      text: /* ignore */'哈哈哈哈哈哈'
     }
   }
 }

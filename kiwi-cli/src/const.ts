@@ -24,7 +24,9 @@ interface Config {
       tld?: Tld;
       concurrentLimit: number;
       requestOptions?: object;
-      timeout: number
+      timeout: number;
+      browersUrl?: string;
+      browers?: boolean;
     },
     excelOptions: {
       keyIndex: number;
@@ -52,7 +54,8 @@ export const PROJECT_CONFIG: Config = {
       tld: 'cn',
       concurrentLimit: 10,
       requestOptions: {},
-      timeout: 6 * 1000
+      timeout: 6 * 1000,
+      browers: false
     },
     excelOptions: {
       keyIndex: 0,
