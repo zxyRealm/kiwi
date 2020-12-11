@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 
-import * as commander from 'commander';
 import * as inquirer from 'inquirer';
 import { initProject } from './init';
 import { sync } from './sync';
@@ -13,6 +12,10 @@ import { mockLangs } from './mock';
 import { extractAll } from './extract/extract';
 import { update } from './update'
 import * as ora from 'ora';
+import * as chalk from 'chalk';
+const leven = require('leven')
+const { Command } = require('commander');
+const program = new Command();
 
 /**
  * 进度条加载
@@ -20,6 +23,7 @@ import * as ora from 'ora';
  * @param callback
  */
 function spining(text, callback) {
+  console.log('callback', callback)
   const spinner = ora(`${text}中...`).start();
   if (callback) {
     callback();
@@ -27,12 +31,16 @@ function spining(text, callback) {
   spinner.succeed(`${text}成功`);
 }
 
-commander
-  .version('0.2.4')
+program
+  .version(`kiwi ${require('../package.json').version}`)
+  .usage('<command> [options]')
+
+
+program
   .option('--init', '初始化项目', { isDefault: true })
   .option('--import [file] [lang]', '导入翻译文案')
   .option('--export [file] [lang]', '导出未翻译的文案')
-  .option('--excel [langDir] [lang]', '导出 excel')
+  // .option('--excel [langDir] [lang]', '导出 excel')
   .option('--compare [originFile] [targetFile]', '对比导出 key 差异')
   .option('--update [file] [lang]', '更新语言包')
   .option('--sync', '同步各种语言的文案')
@@ -41,7 +49,7 @@ commander
   .option('--extract [dirPath]', '一键替换指定文件夹下的所有中文文案')
   .parse(process.argv);
 
-if (commander.init) {
+if (program.init) {
   (async () => {
     const result = await inquirer.prompt({
       type: 'confirm',
@@ -67,67 +75,80 @@ if (commander.init) {
   })();
 }
 
-if (commander.compare) {
+if (program.compare) {
   spining('对比导出excel 中 key 差异', () => {
-    if (commander.compare === true || commander.args.length === 0) {
+    if (program.compare === true || program.args.length === 0) {
       console.log('请按格式输入：--compare originFile targetFile');
-    } else if (commander.args) {
-      compareExcel(commander.compare, commander.args[0]);
+    } else if (program.args) {
+      compareExcel(program.compare, program.args[0]);
     }
   });
 }
 
-if (commander.excel) {
-  spining('导出 excel', () => {
-    exportExcel(commander.args.length && commander.excel, commander.args && commander.args[0])
-  });
-}
+// export all language excel file
+program
+  .command('excel <langDir>')
+  .description('导出 excel')
+  .option('-d --dir [langDir]', '导出文件路径地址')
+  .option('-l --lang [lang]', '导出语言文件类型')
+  .action((cmd) => {
+    console.log('cmd', cmd)
+    return
+    exportExcel(program.args.length && program.excel, program.args && program.args[0])
+  })
+// if (program.excel) {
+//   spining('导出 excel', () => {
+//     console.log('args', program.args)
+//     return
+//     exportExcel(program.args.length && program.excel, program.args && program.args[0])
+//   });
+// }
 
-if (commander.import) {
+if (program.import) {
   spining('导入翻译文案', () => {
-    if (commander.import === true || commander.args.length === 0) {
+    if (program.import === true || program.args.length === 0) {
       console.log('请按格式输入：--import [file] [lang]');
-    } else if (commander.args) {
-      importMessages(commander.import, commander.args[0]);
+    } else if (program.args) {
+      importMessages(program.import, program.args[0]);
     }
   });
 }
 
-if (commander.export) {
+if (program.export) {
   spining('导出未翻译的文案', () => {
-    if (commander.export === true && commander.args.length === 0) {
+    if (program.export === true && program.args.length === 0) {
       exportMessages();
-    } else if (commander.args) {
-      exportMessages(commander.export, commander.args[0]);
+    } else if (program.args) {
+      exportMessages(program.export, program.args[0]);
     }
   });
 }
 
-if (commander.sync) {
+if (program.sync) {
   spining('文案同步', () => {
     sync();
   });
 }
 
-if (commander.update) {
+if (program.update) {
   spining('文案更新', () => {
-    if (commander.update === true && commander.args.length === 0) {
+    if (program.update === true && program.args.length === 0) {
       update();
-    } else if (commander.args.length) {
-      update(commander.update, ...commander.args);
+    } else if (program.args.length) {
+      update(program.update, ...program.args);
     } else {
       console.warn('请按格式输入：--update [file] [lang]');
     }
   });
 }
 
-if (commander.unused) {
+if (program.unused) {
   spining('导出未使用的文案', () => {
     findUnUsed();
   });
 }
 
-if (commander.mock) {
+if (program.mock) {
   const spinner = ora('使用 Google 翻译中...').start();
   sync(async () => {
     await mockLangs();
@@ -135,10 +156,64 @@ if (commander.mock) {
   });
 }
 
-if (commander.extract) {
-  if (commander.extract === true) {
+if (program.extract) {
+  if (program.extract === true) {
     extractAll();
   } else {
-    extractAll(commander.extract);
+    extractAll(program.extract);
   }
+}
+
+
+// output help information on unknown commands
+program
+  .arguments('<command>')
+  .action((cmd) => {
+    program.outputHelp()
+    console.log(`  ` + chalk.red(`Unknown command ${chalk.yellow(cmd)}.`))
+    console.log()
+    suggestCommands(cmd)
+  })
+
+// add some useful info on help
+program.on('--help', () => {
+  console.log()
+  console.log(`  Run ${chalk.cyan(`kiwi <command> --help`)} for detailed usage of given command.`)
+  console.log()
+})
+
+function suggestCommands (unknownCommand) {
+  const availableCommands = program.commands.map(cmd => cmd._name)
+
+  let suggestion
+
+  availableCommands.forEach(cmd => {
+    const isBestMatch = leven(cmd, unknownCommand) < leven(suggestion || '', unknownCommand)
+    if (leven(cmd, unknownCommand) < 3 && isBestMatch) {
+      suggestion = cmd
+    }
+  })
+
+  if (suggestion) {
+    console.log(`  ` + chalk.red(`Did you mean ${chalk.yellow(suggestion)}?`))
+  }
+}
+
+function camelize(str) {
+  return str.replace(/-(\w)/g, (_, c) => c ? c.toUpperCase() : '')
+}
+
+// commander passes the Command object itself as options,
+// extract only actual options into a fresh object.
+function cleanArgs (cmd) {
+  const args = {}
+  cmd.options.forEach(o => {
+    const key = camelize(o.long.replace(/^--/, ''))
+    // if an option is not present and Command has a method with the same name
+    // it should not be copied
+    if (typeof cmd[key] !== 'function' && typeof cmd[key] !== 'undefined') {
+      args[key] = cmd[key]
+    }
+  })
+  return args
 }
