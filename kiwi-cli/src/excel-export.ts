@@ -55,20 +55,25 @@ function exportExcel (langDir?: string, lang?: string) {
           langObj[langName] ? langObj[langName].push(item) : langObj[langName] = [item]
         }
       })
+      const allLangObject = {}
+      console.log('lang object', langObj)
       Object.keys(langObj).forEach(key => {
+        allLangObject[key] = getAllData(langObj[key])
         if (lang) {
-          if (langObj[lang]) {
-            const allData = getAllData(langObj[key])
-            createXlsxFile(key, allData)
-          } else {
-            log(chalk.red(`${lang} 语言文件不存在，请从 ${excelList.join('|')} 中选取`))
+          // allLangObject[key] = langObj
+          // if (langObj[lang]) {
+            // const allData = getAllData(langObj[key])
+            // createXlsxFile(key, allData)
+          // } else {
+            // log(chalk.red(`${lang} 语言文件不存在，请从 ${excelList.join('|')} 中选取`))
           }
-        } else {
-          const allData = getAllData(langObj[key])
-          createXlsxFile(key, allData)
-        }
-        
+        // } else {
+          // const allData = getAllData(langObj[key])
+          // createXlsxFile(key, allData)
+        // }
       })
+      createXlsxFile('all_lang', allLangObject)
+      console.log('all lang', allLangObject)
   })
 }
 
@@ -76,11 +81,20 @@ function exportExcel (langDir?: string, lang?: string) {
 function createXlsxFile (filename, sheetData) {
   const data = [ sheetHeader() ]
   const newRootDir = './export-excel'
-  Object.keys(sheetData).forEach(key => {
-    if (key) {
-      data.push([key, sheetData[key]])
-    }
+  const langs = Object.keys(sheetData)
+  if (!sheetData[langs[0]]) {
+    // return log(chalk.red('语言文件不存在，请添加))
+  }
+  Object.keys(sheetData[langs[0]]).forEach(key => {
+    const values = langs.map(lg => sheetData[lg][key])
+    data.push([key, ...values])
   })
+  // Object.keys(sheetData).forEach(lang => {
+  //   if (lang) {
+     
+  //     // data.push([key, sheetData[key]])
+  //   }
+  // })
   const buffer = xlsx.build([{ data }], sheetOptions)
   const filePath = `${newRootDir}/${filename}.xlsx`
   fs.outputFileSync(filePath, buffer)
