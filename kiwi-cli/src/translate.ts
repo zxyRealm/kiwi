@@ -1,12 +1,12 @@
 import * as qs from 'qs'
 import * as request from 'request'
-
+import * as md5 from 'js-md5'
+import { getRandomStr, encodeUtf8 } from './utils'
 interface LdResultType {
   srcLangs: string[];
   srclangs_confidences: number[];
   extended_srclangs: string[]
 }
-
 interface SentencesType {
   trans: string;
   orig: string;
@@ -21,48 +21,42 @@ export interface TranslateResponseType {
 }
 
 export interface Options {
-  client?: string;
-  dt?: string;
-  dj?: 1;
-  ie?: string;
-  sl?: string; // 源语言类型
-  tl?: string; // 翻译后的语言类型
   q?: string;
   to?: string;
   from?: string;
+  secretKey: string;
+  appid: string;
   [key: string]: any;
 }
 
-export function googleTranslate (text: string, options?: Options) {
-  return new Promise<TranslateResponseType>((resolve, reject) => {
-    if (typeof text !== 'string') return reject('translate text must be a string')
-    const { to, from } = options || ({} as Options)
-    const params = {
-      client: 'gtx',
-      dt: 't',
-      dj: 1,
-      ie: 'UTF-8',
-      sl: from || 'auto', // 源语言类型
-      tl: to || 'en', // 翻译后的语言类型
-      q: text, // 要翻译的内容
-      ...options
-    }
+// 百度通用翻译 api 文档  https://fanyi-api.baidu.com/doc/21
+export function daiduTranslate (text: string, options: Options) {
+  const { appid = '20210105000663752', secretKey = 'W1uUbJOMvFevPj0OcjG1' } = options
+  const salt = getRandomStr(8)
+  const signStr = appid + text + salt + secretKey
+  const sign = md5(signStr)
+  console.log('sign', sign, signStr)
+  const params = {
+    q: encodeUtf8(text),
+    from: 'auto',
+    to: 'en',
+    appid,
+    salt,
+    sign,
+    ...options
+  }
+  console.log('params', params)
+  return new Promise((resolve, reject) => {
     request({
-      url: `http://translate.google.cn/translate_a/single?${qs.stringify(params)}`,
-      method: 'get',
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    }, function (error, res, body) {
-        if (error) return reject(error)
-        try {
-          resolve(JSON.parse(body))
-        } catch (e) {
-          const errorMsg = body.match(/<div>(.*)<div>/g)
-          reject(errorMsg)
-          console.log('errorMsg', errorMsg)
-        }
+      url: `http://api.fanyi.baidu.com/api/trans/vip/translate?${qs.stringify(params)}`,
+      method: 'get'
+    }, function (error, response, body) {
+        setTimeout(() => {
+          if (error) return reject(error)
+          resolve(body)
+          console.log('body ========', body)
+        }, 1000)
+       
     })
   })
 }
-

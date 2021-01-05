@@ -5,11 +5,16 @@
 import * as path from 'path';
 import * as _ from 'lodash';
 import * as fs from 'fs';
-import { PROJECT_CONFIG, KIWI_CONFIG_FILE } from './const';
+import {
+  PROJECT_CONFIG,
+  KIWI_CONFIG_FILE,
+  Options,
+  translateResponseType
+} from './const';
 import * as ts from 'typescript'
 import { readFiles } from './extract/file'
 import * as slash from 'slash2';
-import { googleTranslate, Options } from './translate'
+import * as baiduTranslate from 'baidu-translate-api'
 const xlsx = require('node-xlsx').default
 
 const log = console.log
@@ -147,23 +152,16 @@ function translateText (text, toLang) {
     to: PROJECT_CONFIG.langMap[toLang] || 'en',
     ...CONFIG.translateOptions
   };
-  // const googleTranslate = googleTranslate;
-
   return withTimeout(
     new Promise((resolve, reject) => {
-      googleTranslate(text, options).then(res => {
-        let translatedText =  res.sentences[0].trans
-        // if (Array.isArray(text)) {
-        //   translatedText = parseMultiple(translatedText)
-        // }
-        setTimeout(() => {
-          resolve(translatedText)
-        }, 500)
-        }).catch(error => {
-          log('translate error', chalk(error.message))
-          reject(error)
-        }
-      );
+      baiduTranslate(text, options).then((res: translateResponseType) => {
+        console.log('----', res)
+        let translatedText = res.trans_result.dst
+        resolve(translatedText)
+      }).catch(error => {
+        log('translate error', chalk(error.message))
+        reject(error)
+      });
     }),
     timeout,
     text
@@ -287,6 +285,39 @@ function checkTextIsIgnore(code: string, start: number): boolean {
   return code && (code.substr(start - 20, 20).indexOf('/* ignore */') > -1 || code.substr(start - 20, 20).indexOf('<!-- ignore -->') > -1)
 }
 
+// 获取随机盐值
+function getRandomStr (length:number = 4): string {
+  let result = Math.floor(Math.random() * 90 + 10).toString()
+  for (let i = 0; i < length - 2; i++) {
+    let ranNum = Math.ceil(Math.random() * 25)
+    result += String.fromCharCode(65 + ranNum).toString()
+  }
+  return result
+}
+
+function encodeUtf8(text) {
+  const code = encodeURIComponent(text);
+  const bytes = [];
+  for (var i = 0; i < code.length; i++) {
+      const c = code.charAt(i);
+      if (c === '%') {
+          const hex = code.charAt(i + 1) + code.charAt(i + 2);
+          const hexVal = parseInt(hex, 16);
+          bytes.push(hexVal);
+          i += 2;
+      } else bytes.push(c.charCodeAt(0));
+  }
+  return bytes;
+}
+
+function decodeUtf8(bytes) {
+  var encoded = "";
+  for (var i = 0; i < bytes.length; i++) {
+      encoded += '%' + bytes[i].toString(16);
+  }
+  return decodeURIComponent(encoded);
+}
+
 export {
   getKiwiDir,
   getLangDir,
@@ -301,6 +332,9 @@ export {
   flatten,
   lookForFiles,
   replaceOccupyStr,
+  encodeUtf8,
+  decodeUtf8,
+  getRandomStr,
   transformToObject,
   getAllData,
   readSheetData,

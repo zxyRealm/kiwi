@@ -41,6 +41,23 @@ interface Config {
   zhTestFile?: string;
 }
 
+// baidu translate options
+export interface Options {
+  from?: string;
+  to?: string;
+  requestOpts?: object;
+  [key: string]: any;
+}
+
+export interface translateResponseType {
+  from: string;
+  to: string;
+  trans_result: {
+    dst: string;
+    src: string;
+  }
+}
+
 export const PROJECT_CONFIG: Config = {
   dir: './.kiwi',
   configFile: `./.kiwi/${KIWI_CONFIG_FILE}`,
