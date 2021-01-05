@@ -6,11 +6,10 @@ import * as path from 'path';
 import * as _ from 'lodash';
 import * as fs from 'fs';
 import { PROJECT_CONFIG, KIWI_CONFIG_FILE } from './const';
-import translate, { parseMultiple, Options } from 'google-translate-open-api'
 import * as ts from 'typescript'
 import { readFiles } from './extract/file'
 import * as slash from 'slash2';
-
+import { googleTranslate, Options } from './translate'
 const xlsx = require('node-xlsx').default
 
 const log = console.log
@@ -148,19 +147,18 @@ function translateText (text, toLang) {
     to: PROJECT_CONFIG.langMap[toLang] || 'en',
     ...CONFIG.translateOptions
   };
-  const googleTranslate = translate;
+  // const googleTranslate = googleTranslate;
 
   return withTimeout(
     new Promise((resolve, reject) => {
       googleTranslate(text, options).then(res => {
-          let translatedText =  Array.isArray(res.data) ? res.data[0] : res.data
-          if (Array.isArray(text)) {
-            translatedText = parseMultiple(translatedText)
-        }
+        let translatedText =  res.sentences[0].trans
+        // if (Array.isArray(text)) {
+        //   translatedText = parseMultiple(translatedText)
+        // }
         setTimeout(() => {
           resolve(translatedText)
         }, 500)
-          // resolve(translatedText)
         }).catch(error => {
           log('translate error', chalk(error.message))
           reject(error)
