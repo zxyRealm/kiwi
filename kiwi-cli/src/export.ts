@@ -15,7 +15,6 @@ import { tsvFormatRows } from 'd3-dsv';
 import { getAllMessages, getProjectConfig } from './utils';
 import { DOUBLE_BYTE_REGEX } from './const'
 import * as _ from 'lodash';
-import { importMessages } from './import';
 
 const sheetHeader = (lang?: string) => {
   return [
@@ -51,39 +50,41 @@ function exportMessages(file?: string, lang?: string) {
   const allMessages = getAllMessages(CONFIG.srcLang);
   // 默认判断中文
   const zhCnMessages = getAllMessages(CONFIG.zhLang)
+  // console.log('all message', zhCnMessages)
   langs
     .filter(item => ![CONFIG.srcLang, CONFIG.zhLang].includes(item))
-    .map(l => {
-    const existingTranslations = getAllMessages(
-      l,
-      (message, key) => {
-        // 非中文语言包，value 值 和中文一致时视为当前语言未翻译
-        const unTranslateMsg = zhCnMessages[key] !== message
-        // 源语言包 value 值和其他语言 value 一致的 key 视为未翻译内容
-        const unOriginTranslateMsg  = allMessages[key] !== message
-        return (l !== CONFIG.zhLang && DOUBLE_BYTE_REGEX.test(allMessages[key])) || (unTranslateMsg && unOriginTranslateMsg) || allMessages[key] === undefined
+    .forEach(l => {
+      // 过滤出未翻译的文案 keys
+      const currentMessages = getAllMessages(l) || {};
+      /*
+      * 1. 非中文语言包中包含中文
+      * 2. 中文语言包中 key 在其他语言包中不存在
+      * 3. 中文语言包中 key 对应的 value 和 其他语言包中 key: value 一致, 并且 value 中包含中文
+      */
+      const messagesToTranslate = Object.keys(allMessages)
+        .filter(key => {
+          const curText = currentMessages[key]
+          const text = allMessages[key]
+          const unTranslate = curText === undefined || DOUBLE_BYTE_REGEX.test(curText) || (DOUBLE_BYTE_REGEX.test(curText) && curText === text)
+          return unTranslate
+        })
+        .map(key => {
+          let message = allMessages[key];
+          message = JSON.stringify(message).slice(1, -1);
+          return [key, message];
+        });
+
+      if (messagesToTranslate.length === 0) {
+        console.log('All the messages have been translated.');
+        return;
       }
-    );
-    const messagesToTranslate = Object.keys(allMessages)
-      .filter(key => !existingTranslations.hasOwnProperty(key))
-      .map(key => {
-        let message = allMessages[key];
-        message = JSON.stringify(message).slice(1, -1);
-        return [key, message];
-      });
-
-    if (messagesToTranslate.length === 0) {
-      console.log('All the messages have been translated.');
-      return;
-    }
-
-    const content = tsvFormatRows(messagesToTranslate);
-    const sourceFile = file || `./export-${l}.txt`;
-    const version = getProjectVersion()
-    fs.writeFileSync(sourceFile, content);
-    createXlsxFile(`export-${l}_${version}`, messagesToTranslate)
-    console.log(`Exported ${l} ${messagesToTranslate.length} message(s).`);
-  });
+      const content = tsvFormatRows(messagesToTranslate);
+      const sourceFile = file || `./export-${l}.txt`;
+      const version = getProjectVersion()
+      fs.writeFileSync(sourceFile, content);
+      createXlsxFile(`export-${l}_${version}`, messagesToTranslate)
+      console.log(`Exported ${l} ${messagesToTranslate.length} message(s).`);
+    });
 }
 
 export { exportMessages };

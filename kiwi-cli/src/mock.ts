@@ -64,9 +64,10 @@ async function mockCurrentLang(dstLang) {
     return translateText(untranslatedTexts[key], dstLang).then(translatedText => [key, translatedText]);
   });
   /** 获取 Mocks 文案 */
+  // TODO: translatedText 方法待优化
   await Promise.all(translateAllTexts).then(res => {
     res.forEach(([key, translatedText]) => {
-      mocks[key] = translatedText;
+      // mocks[key] = translatedText;
     });
     return mocks;
   });
@@ -85,7 +86,7 @@ function writeMockFile(dstLang, mocks) {
       if (err) {
         reject(err);
       } else {
-        resolve();
+        resolve(true);
       }
     });
   });

@@ -14,7 +14,7 @@ import {
 import * as ts from 'typescript'
 import { readFiles } from './extract/file'
 import * as slash from 'slash2';
-import * as baiduTranslate from 'baidu-translate-api'
+import { baiduTranslate }from './translate'
 const xlsx = require('node-xlsx').default
 
 const log = console.log
@@ -102,9 +102,13 @@ function getAllMessages(lang?: string, filter = (message: string, key: string) =
   const CONFIG = getProjectConfig();
   lang = lang || CONFIG.srcLang
   const srcLangDir = getLangDir(lang);
-  // try {
-  let files = readFiles(srcLangDir, /\.(js|ts)$/)
-  return getAllData(files, filter)
+  try {
+    let files = readFiles(srcLangDir, /\.(js|ts)$/)
+    return getAllData(files, filter)
+  } catch (error) {
+    log(chalk.red(error))
+    return {}
+  }
 }
 
 /**
@@ -131,6 +135,7 @@ function retry(asyncOperation, times = 1) {
  */
 function withTimeout(promise, ms, text) {
   const timeoutPromise = new Promise((resolve, reject) => {
+    // resolve()
     setTimeout(() => {
       reject({
         text,
@@ -152,20 +157,31 @@ function translateText (text, toLang) {
     to: PROJECT_CONFIG.langMap[toLang] || 'en',
     ...CONFIG.translateOptions
   };
-  return withTimeout(
-    new Promise((resolve, reject) => {
-      baiduTranslate(text, options).then((res: translateResponseType) => {
-        console.log('----', res)
-        let translatedText = res.trans_result.dst
-        resolve(translatedText)
-      }).catch(error => {
-        log('translate error', chalk(error.message))
-        reject(error)
-      });
-    }),
-    timeout,
-    text
-  );
+  return new Promise((resolve, reject) => {
+    baiduTranslate(text, options).then((res: translateResponseType) => {
+      // console.log('----', res)
+      let translatedText = res.trans_result[0].dst
+      resolve(translatedText)
+    }).catch(error => {
+      log('translate error', chalk.red(`error code ${error.errno || error.error_code}`, error.errmsg || error.error_msg))
+      reject(error)
+    });
+  })
+  // console.log('translate options', text)
+  // return withTimeout(
+  //   new Promise((resolve, reject) => {
+  //     baiduTranslate(text, options).then((res: translateResponseType) => {
+  //       console.log('----', res)
+  //       let translatedText = res.trans_result[0].dst
+  //       resolve(translatedText)
+  //     }).catch(error => {
+  //       log('translate error', chalk.red(`error code ${error.errno || error.error_code}`, error.errmsg || error.error_msg))
+  //       reject(error)
+  //     });
+  //   }),
+  //   timeout,
+  //   text
+  // );
 }
 
 function findMatchKey(langObj, text) {
@@ -285,38 +301,38 @@ function checkTextIsIgnore(code: string, start: number): boolean {
   return code && (code.substr(start - 20, 20).indexOf('/* ignore */') > -1 || code.substr(start - 20, 20).indexOf('<!-- ignore -->') > -1)
 }
 
-// 获取随机盐值
-function getRandomStr (length:number = 4): string {
-  let result = Math.floor(Math.random() * 90 + 10).toString()
-  for (let i = 0; i < length - 2; i++) {
-    let ranNum = Math.ceil(Math.random() * 25)
-    result += String.fromCharCode(65 + ranNum).toString()
-  }
-  return result
-}
+// // 获取随机盐值
+// function getRandomStr (length:number = 4): string {
+//   let result = Math.floor(Math.random() * 90 + 10).toString()
+//   for (let i = 0; i < length - 2; i++) {
+//     let ranNum = Math.ceil(Math.random() * 25)
+//     result += String.fromCharCode(65 + ranNum).toString()
+//   }
+//   return result
+// }
 
-function encodeUtf8(text) {
-  const code = encodeURIComponent(text);
-  const bytes = [];
-  for (var i = 0; i < code.length; i++) {
-      const c = code.charAt(i);
-      if (c === '%') {
-          const hex = code.charAt(i + 1) + code.charAt(i + 2);
-          const hexVal = parseInt(hex, 16);
-          bytes.push(hexVal);
-          i += 2;
-      } else bytes.push(c.charCodeAt(0));
-  }
-  return bytes;
-}
+// function encodeUtf8(text) {
+//   const code = encodeURIComponent(text);
+//   const bytes = [];
+//   for (var i = 0; i < code.length; i++) {
+//       const c = code.charAt(i);
+//       if (c === '%') {
+//           const hex = code.charAt(i + 1) + code.charAt(i + 2);
+//           const hexVal = parseInt(hex, 16);
+//           bytes.push(hexVal);
+//           i += 2;
+//       } else bytes.push(c.charCodeAt(0));
+//   }
+//   return bytes;
+// }
 
-function decodeUtf8(bytes) {
-  var encoded = "";
-  for (var i = 0; i < bytes.length; i++) {
-      encoded += '%' + bytes[i].toString(16);
-  }
-  return decodeURIComponent(encoded);
-}
+// function decodeUtf8(bytes) {
+//   var encoded = "";
+//   for (var i = 0; i < bytes.length; i++) {
+//       encoded += '%' + bytes[i].toString(16);
+//   }
+//   return decodeURIComponent(encoded);
+// }
 
 export {
   getKiwiDir,
@@ -332,9 +348,9 @@ export {
   flatten,
   lookForFiles,
   replaceOccupyStr,
-  encodeUtf8,
-  decodeUtf8,
-  getRandomStr,
+  // encodeUtf8,
+  // decodeUtf8,
+  // getRandomStr,
   transformToObject,
   getAllData,
   readSheetData,

@@ -23,10 +23,10 @@ interface Config {
     translateOptions: {
       tld?: Tld;
       concurrentLimit: number;
-      requestOptions?: object;
       timeout: number;
-      browersUrl?: string;
-      browers?: boolean;
+      appid: string;
+      secretKey: string;
+      [key: string]: any;
     },
     excelOptions: {
       keyIndex: number;
@@ -46,6 +46,8 @@ export interface Options {
   from?: string;
   to?: string;
   requestOpts?: object;
+  appid: string;
+  secretKey: string;
   [key: string]: any;
 }
 
@@ -68,11 +70,10 @@ export const PROJECT_CONFIG: Config = {
     zhLang: 'zh-CN',
     distLangs: ['en', 'zh-CN'],
     translateOptions: {
-      tld: 'cn',
+      appid: '',
+      secretKey: '',
       concurrentLimit: 10,
-      requestOptions: {},
-      timeout: 6 * 1000,
-      browers: false
+      timeout: 6 * 1000
     },
     excelOptions: {
       keyIndex: 0,

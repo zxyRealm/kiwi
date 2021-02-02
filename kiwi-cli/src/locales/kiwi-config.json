@@ -9,7 +9,9 @@
   "translateOptions": {
     "tld": "cn",
     "concurrentLimit": 10,
-    "requestOptions": {}
+    "requestOptions": {},
+    "appid": "20210105000663752",
+    "secretKey": "W1uUbJOMvFevPj0OcjG1"
   },
   "excelOptions": {
     "valueIndex": 2

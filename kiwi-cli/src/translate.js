@@ -1,7 +1,9 @@
 const qs = require('qs')
 const _ =  require('lodash');
 const request = require('request')
-const md5 = require('js-md5')
+const md5 = require('js-md5');
+const { resolve } = require('path');
+const { reject } = require('lodash');
 
 // const daiduTranslate = require('baidu-translate-api')
 
@@ -46,9 +48,78 @@ function getRandomStr (length = 4) {
   return result
 }
 
-daiduTranslate('中国').then(res => {
-  console.log('baidu translate', res)
-}).catch(error => {
-  console.error('error', error)
+// daiduTranslate('中国').then(res => {
+//   console.log('baidu translate', res)
+// }).catch(error => {
+//   console.error('error', error)
+// })
+
+function asyncFunc (i) {
+  return new Promise((resolve, reject) => {
+    const randomTime = (parseInt((Math.random() * 10)) + 5) * 100
+    console.log('random time', randomTime)
+    setTimeout(() => {
+      randomTime <= 1400 ? resolve((i * 2) + 'async') : reject()
+    }, randomTime)
+  })
+}
+
+const List = [1, 2, 3, 4]
+function getAllAsyncResults (list, func) {
+  return new Promise((resolve, reject) => {
+    let isError = false
+    let results = []
+    list.reduce(async (pre, curr, index) => {
+      if (isError) return null
+      try {
+        let val = await pre
+        if (val !== null) results.push(val)
+        if (index === list.length - 1) {
+          val = await func(curr)
+          results.push(val)
+          resolve(results)
+        }
+        return func(curr)
+      } catch (e) {
+        isError = true
+        reject(e)
+        return null
+      }
+    }, null)
+  })
+}
+
+getAllAsyncResults(List).then(res => {
+  console.log('all result', res)
+}).catch(e => {
+  console.error(e)
 })
 
+let list=["a12", "b13", "c13", "d13", "e13"];
+const p = function(num){
+  return new Promise((resolve, reject) => {
+    setTimeout(() => { 	
+      console.log(">>>>>"+num);
+      resolve("ok"+num);
+  	}, 1000)
+ 	})
+};
+ 
+const g = function(){
+  return new Promise((resolve, reject) => {
+  const results = []
+  list.reduce(async(pre,cur,index)=>{
+    const data = await pre;//异步
+    if (data !== null) results.push(data)
+    if(index==list.length-1){//最后一个项目
+      await p(cur);
+      resolve(results)
+    } else return p(cur);
+  },null);
+});
+}
+ 
+// g().then((e)=>{
+// 	console.log(e);
+// });
+// console.log('all result ', asyncAllResult)
