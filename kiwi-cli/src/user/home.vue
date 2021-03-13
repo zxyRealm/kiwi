@@ -14,7 +14,7 @@
       <template slot-scope="{ title }">
         {{`${$t(`这是一个内嵌的 slot-scope 插槽 {title}`, { title })}`}}
       </template>
-      <!-- ignore --> {{text}}
+      <!-- ignore {{text}} -->
     </template>
   </div>
 </template>

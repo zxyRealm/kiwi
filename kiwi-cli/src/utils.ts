@@ -14,7 +14,7 @@ import {
 import * as ts from 'typescript'
 import { readFiles } from './extract/file'
 import * as slash from 'slash2';
-import { baiduTranslate }from './translate'
+import { Translate }from './translate'
 const xlsx = require('node-xlsx').default
 
 const log = console.log
@@ -158,30 +158,18 @@ function translateText (text, toLang) {
     ...CONFIG.translateOptions
   };
   return new Promise((resolve, reject) => {
-    baiduTranslate(text, options).then((res: translateResponseType) => {
-      // console.log('----', res)
-      let translatedText = res.trans_result[0].dst
-      resolve(translatedText)
+    Translate(text, options).then((res: translateResponseType) => {
+      // let translatedText = res.trans_result[0].dst
+      setTimeout(() => {
+        resolve(res)
+      }, 1000)
+      // resolve(translatedText)
     }).catch(error => {
+      log(chalk.red(error))
       log('translate error', chalk.red(`error code ${error.errno || error.error_code}`, error.errmsg || error.error_msg))
       reject(error)
     });
   })
-  // console.log('translate options', text)
-  // return withTimeout(
-  //   new Promise((resolve, reject) => {
-  //     baiduTranslate(text, options).then((res: translateResponseType) => {
-  //       console.log('----', res)
-  //       let translatedText = res.trans_result[0].dst
-  //       resolve(translatedText)
-  //     }).catch(error => {
-  //       log('translate error', chalk.red(`error code ${error.errno || error.error_code}`, error.errmsg || error.error_msg))
-  //       reject(error)
-  //     });
-  //   }),
-  //   timeout,
-  //   text
-  // );
 }
 
 function findMatchKey(langObj, text) {

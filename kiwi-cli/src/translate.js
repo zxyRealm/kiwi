@@ -2,9 +2,7 @@ const qs = require('qs')
 const _ =  require('lodash');
 const request = require('request')
 const md5 = require('js-md5');
-const { resolve } = require('path');
-const { reject } = require('lodash');
-
+const translate = require('translate')
 // const daiduTranslate = require('baidu-translate-api')
 
 function daiduTranslate (text, options = {}) {
@@ -89,11 +87,11 @@ function getAllAsyncResults (list, func) {
   })
 }
 
-getAllAsyncResults(List).then(res => {
-  console.log('all result', res)
-}).catch(e => {
-  console.error(e)
-})
+// getAllAsyncResults(List).then(res => {
+//   console.log('all result', res)
+// }).catch(e => {
+//   console.error(e)
+// })
 
 let list=["a12", "b13", "c13", "d13", "e13"];
 const p = function(num){
@@ -109,9 +107,9 @@ const g = function(){
   return new Promise((resolve, reject) => {
   const results = []
   list.reduce(async(pre,cur,index)=>{
-    const data = await pre;//异步
+    const data = await pre; //异步
     if (data !== null) results.push(data)
-    if(index==list.length-1){//最后一个项目
+    if(index==list.length-1){ //最后一个项目
       await p(cur);
       resolve(results)
     } else return p(cur);
@@ -123,3 +121,13 @@ const g = function(){
 // 	console.log(e);
 // });
 // console.log('all result ', asyncAllResult)
+
+translate('中共', {
+  engine: 'libre',
+  from: 'zh',
+  to: 'en'
+}).then((val) => {
+  console.log('translate text', val)
+})
+
+// console.log('google translate', translate.getAllLanguage())

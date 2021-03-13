@@ -9,6 +9,7 @@ function transferI18n(code, filename, lang?) {
     return javascriptI18n(code, filename);
   }
 }
+
 function typescriptI18n(code, fileName) {
   let arr = [];
   const ast = ts.createSourceFile('', code, ts.ScriptTarget.ES2015, true, ts.ScriptKind.TS);
@@ -28,6 +29,7 @@ function typescriptI18n(code, fileName) {
   ts.forEachChild(ast, visit);
   return arr;
 }
+
 function javascriptI18n(code, filename) {
   let arr = [];
   let visitor = {
@@ -45,6 +47,7 @@ function javascriptI18n(code, filename) {
   });
   return arr;
 }
+
 // 必须将模板语法中的所有待翻译语句翻译完成才能进行ast的string解析
 function findVueText (ast) {
   let arr = [];

@@ -40,7 +40,7 @@ program
   .option('--init', '初始化项目', { isDefault: true })
   .option('--import [file] [lang]', '导入翻译文案')
   .option('--export [file] [lang]', '导出未翻译的文案')
-  // .option('--excel [langDir] [lang]', '导出 excel')
+  .option('--excel [langDir] [lang]', '导出 excel')
   .option('--compare [originFile] [targetFile]', '对比导出 key 差异')
   .option('--update [file] [lang]', '更新语言包')
   .option('--sync', '同步各种语言的文案')
@@ -93,16 +93,17 @@ program
   .option('-l --lang [lang]', '导出语言文件类型')
   .action((cmd) => {
     console.log('cmd', cmd)
-    return
-    exportExcel(program.args.length && program.excel, program.args && program.args[0])
+    // return
+    // exportExcel(program.args.length && program.excel, program.args && program.args[0])
   })
-// if (program.excel) {
-//   spining('导出 excel', () => {
-//     console.log('args', program.args)
-//     return
-//     exportExcel(program.args.length && program.excel, program.args && program.args[0])
-//   });
-// }
+
+if (program.excel) {
+  spining('导出 excel', () => {
+    console.log('args', program.args)
+    // return
+    exportExcel(program.args.length && program.excel, program.args && program.args[0])
+  });
+}
 
 if (program.import) {
   spining('导入翻译文案', () => {

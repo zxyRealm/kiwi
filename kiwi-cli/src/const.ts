@@ -73,7 +73,7 @@ export const PROJECT_CONFIG: Config = {
       appid: '',
       secretKey: '',
       concurrentLimit: 10,
-      timeout: 6 * 1000
+      timeout: 6000
     },
     excelOptions: {
       keyIndex: 0,

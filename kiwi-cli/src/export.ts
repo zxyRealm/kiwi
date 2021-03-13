@@ -11,6 +11,7 @@ require('ts-node').register({
     module: 'commonjs'
   }
 });
+
 import { tsvFormatRows } from 'd3-dsv';
 import { getAllMessages, getProjectConfig } from './utils';
 import { DOUBLE_BYTE_REGEX } from './const'

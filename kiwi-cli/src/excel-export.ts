@@ -33,15 +33,13 @@ function exportExcel (langDir?: string, lang?: string) {
   // 语言包目录深度
   const langDirLength:number = langDir.split('/').filter(i => i && i !== '.').length
   // 语言文件名称列表
-  const excelList = directory.filter(dir => !/\.[a-zA-Z]+$/.test(dir))
+  const excelList = directory.filter(dir => !/\.[a-zA-Z-_\d]+$/.test(dir))
   dirs.readFiles(langDir, {
     match: /\.js$/
-  },
-    (error, content, next) => {
+  }, (error, content, next) => {
       if (error) throw new Error(error)
       next()
-    },
-    (error, files) => {
+    }, (error, files) => {
       if (error) throw new Error(error)
       // 根据 locales 目录下的一级目录区分语言类型
       const langObj = {}
@@ -50,35 +48,37 @@ function exportExcel (langDir?: string, lang?: string) {
         // 语言包文件一级目录视为语言类型
         const langName = item.split('/')[langDirLength]
         // 是否是语言类型文件夹名，排除非文件夹
-        const isLangDir = !/\.[a-zA-Z]+$/.test(langName)
+        const isLangDir = !/\.[a-zA-Z-_\d]+$/.test(langName)
         if (isLangDir) {
           langObj[langName] ? langObj[langName].push(item) : langObj[langName] = [item]
         }
       })
-      Object.keys(langObj).forEach(key => {
-        if (lang) {
-          if (langObj[lang]) {
-            const allData = getAllData(langObj[key])
-            createXlsxFile(key, allData)
-          } else {
-            log(chalk.red(`${lang} 语言文件不存在，请从 ${excelList.join('|')} 中选取`))
-          }
-        } else {
-          const allData = getAllData(langObj[key])
-          createXlsxFile(key, allData)
+      const allDataList = []
+      Object.keys(langObj).forEach(langName => {
+        if (lang && !langObj[lang]) {
+          return log(chalk.red(`${lang} 语言文件不存在，请从 ${excelList.join('|')} 中选取`))
         }
-        
+        const dataObj = getAllData( langObj[lang] || langObj[langName])
+        if (lang) {
+          if (langObj[lang]) createXlsxFile(langName, dataObj) 
+        } else {
+          createXlsxFile(langName, dataObj)
+          allDataList.push(dataObj)
+        }
       })
+
+      createXlsxFile('all', ...allDataList)
   })
 }
 
 // 根据原文件目录结构生成新文件目录
-function createXlsxFile (filename, sheetData) {
+function createXlsxFile (filename, ...sheetData) {
   const data = [ sheetHeader() ]
   const newRootDir = './export-excel'
-  Object.keys(sheetData).forEach(key => {
+  Object.keys(sheetData[0]).forEach(key => {
     if (key) {
-      data.push([key, sheetData[key]])
+      const dataList = key => sheetData.map(data => data[key])
+      data.push([key, ...dataList(key)])
     }
   })
   const buffer = xlsx.build([{ data }], sheetOptions)

@@ -1,7 +1,9 @@
-import * as qs from 'qs'
-import * as request from 'request'
 import * as md5 from 'js-md5'
+import * as translate from 'translate'
 // import { getRandomStr, encodeUtf8 } from './utils'
+// Thanks libretranslate.com free translate service
+// api address: https://libretranslate.com/docs/
+
 interface LdResultType {
   srcLangs: string[];
   srclangs_confidences: number[];
@@ -39,16 +41,16 @@ function getRandomStr (length:number = 4): string {
   return result
 }
 
-// 百度通用翻译 api 文档  https://fanyi-api.baidu.com/doc/21
-export function baiduTranslate (text: string, options: Options) {
+// api 文档  https://libretranslate.com/docs/
+export function Translate (text: string, options: Options) {
   const { appid, secretKey } = options
   const salt = getRandomStr(8)
   const signStr = appid + text + salt + secretKey
   const sign = md5(signStr)
-  // console.log('sign', sign, signStr)
   const params = {
     q: text,
-    from: 'auto',
+    engine: 'libre',
+    from: 'zh',
     to: 'en',
     appid,
     salt,
@@ -56,26 +58,10 @@ export function baiduTranslate (text: string, options: Options) {
     ...options
   }
   return new Promise((resolve, reject) => {
-    if (!appid || !secretKey) return reject({ error_code: '52003', error_msg: '请设置 appid 和 secretKey 参数' })
-    request({
-      url: `http://api.fanyi.baidu.com/api/trans/vip/translate?${qs.stringify(params)}`,
-      method: 'get',
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    }, function (error, response, body) {
-      const delayTime = text.length > 15 ? 3000 : 1000
-      setTimeout(() => {
-        if (error) return reject(new Error(error))
-        try {
-          const data = JSON.parse(body)
-          if (data.error_code) return reject(data)
-          resolve(data)
-        } catch (e) {
-          reject(new Error(e))
-        }
-        // console.log('body ========', typeof body, body)
-      }, delayTime)
+    translate(params.q, params).then(text => {
+      resolve(text)
+    }).catch((error) => {
+      reject(error)
     })
   })
 }
