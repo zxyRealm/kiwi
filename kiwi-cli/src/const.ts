@@ -28,6 +28,7 @@ interface Config {
       secretKey: string;
       [key: string]: any;
     },
+    prettierConfig?:{},
     excelOptions: {
       keyIndex: number;
       valueIndex: number;
@@ -79,6 +80,7 @@ export const PROJECT_CONFIG: Config = {
       keyIndex: 0,
       valueIndex: 1
     },
+    prettierConfig: {},
     importI18N: `import i18n from '@/locale';`,
     exclude: ['node_modules'],
     include: ['src']

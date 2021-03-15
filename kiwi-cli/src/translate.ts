@@ -1,5 +1,8 @@
 import * as md5 from 'js-md5'
 import * as translate from 'translate'
+import * as qs from 'qs'
+const request = require('request')
+const googleTranslate = require('@vitalets/google-translate-api')
 // import { getRandomStr, encodeUtf8 } from './utils'
 // Thanks libretranslate.com free translate service
 // api address: https://libretranslate.com/docs/
@@ -50,7 +53,7 @@ export function Translate (text: string, options: Options) {
   const params = {
     q: text,
     engine: 'libre',
-    from: 'zh',
+    from: 'auto',
     to: 'en',
     appid,
     salt,
@@ -58,10 +61,30 @@ export function Translate (text: string, options: Options) {
     ...options
   }
   return new Promise((resolve, reject) => {
-    translate(params.q, params).then(text => {
-      resolve(text)
-    }).catch((error) => {
-      reject(error)
-    })
+    request({
+      url: `http://api.fanyi.baidu.com/api/trans/vip/translate?${qs.stringify(params)}`,
+      method: 'get',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    }, function(error, response, body) {
+        if (error) return reject(error)
+        console.log('body ========', typeof body, body)
+        try {
+          const result = JSON.parse(body);
+          if (result.error_code) {
+            reject(result)
+          } else {
+            const text = result.trans_result[0].dst
+            resolve(text)
+          }
+        } catch (error) {
+          console.error(error)
+        }
+    // googleTranslate(params.q, params).then(res => {
+    //   resolve(res.text)
+    // }).catch((error) => {
+    //   reject(error)
+    // })
   })
 }

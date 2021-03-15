@@ -162,7 +162,7 @@ function translateText (text, toLang) {
       // let translatedText = res.trans_result[0].dst
       setTimeout(() => {
         resolve(res)
-      }, 1000)
+      }, 0)
       // resolve(translatedText)
     }).catch(error => {
       log(chalk.red(error))
@@ -322,6 +322,34 @@ function checkTextIsIgnore(code: string, start: number): boolean {
 //   return decodeURIComponent(encoded);
 // }
 
+// 读取项目中文件
+type FilepathType = string; // 文件相对根目录路径
+function readProjectFile (filepath: string) {
+  // 项目根目录
+  const rootDir = path.resolve(process.cwd(), `./`);
+  const configFile = lookForFiles(rootDir, filepath);
+  let obj = {}
+  if (configFile && fs.existsSync(configFile)) {
+    obj = _.merge(obj, JSON.parse(fs.readFileSync(configFile, 'utf8')));
+  }
+  return obj;
+}
+
+interface PackageJSONType {
+  devDependencies?: any;
+  dependencies?: any;
+  [key: string]: any;
+}
+// 获取项目依赖信息 dependencies && devDependencies
+function getProjectDependencies () {
+  const packageJSON: PackageJSONType = readProjectFile('package.json')
+  return {
+    ...(packageJSON.devDependencies || {}),
+    ...packageJSON.dependencies
+  }
+}
+
+
 export {
   getKiwiDir,
   getLangDir,
@@ -343,5 +371,7 @@ export {
   getAllData,
   readSheetData,
   getProjectVersion,
-  checkTextIsIgnore
+  checkTextIsIgnore,
+  readProjectFile,
+  getProjectDependencies
 };

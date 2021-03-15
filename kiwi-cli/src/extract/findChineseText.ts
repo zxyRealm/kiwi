@@ -15,7 +15,6 @@ import {
 } from './findChineseInVue'
 import { DOUBLE_BYTE_REGEX, matchExpReg } from '../const'
 import { replaceOccupyStr, checkTextIsIgnore } from '../utils'
-import { stat } from 'fs';
 
 /**
  * 去掉文件中的注释
@@ -44,52 +43,35 @@ function findTextInTs(code: string, fileName: string) {
 
   function visit(node: ts.Node) {
     switch (node && node.kind) {
-      case ts.SyntaxKind.StringLiteral: {
-        /** 判断 Ts 中的字符串含有中文 */
-        const { text } = node as ts.StringLiteral;
-        const start = node.getStart();
-        const end = node.getEnd();
-        const ignoreText = checkTextIsIgnore(code, start)
-
-        if (text.match(DOUBLE_BYTE_REGEX) && !ignoreText) {
-          
-          const isGlobal = ['.t(', '$t('].includes(code.substr(start - 3, 3))
-          const range = {
-            start: start + Number(isGlobal),
-            end: end - Number(isGlobal)
-          };
-          matches.push({
-            type: isGlobal ? 'jsGlobal' : 'jsStr',
-            range,
-            text,
-            isString: true
-          });
-        }
-        break;
-      }
       case ts.SyntaxKind.JsxElement: {
         const { children } = node as ts.JsxElement;
+        switch (node && node.kind) {
+          default: 
+            children.forEach(child => {
+              switch (child && child.kind) {
+                case ts.SyntaxKind.JsxText: {
+                  const text = child.getText();
+                  /** 修复注释含有中文的情况，Angular 文件错误的 Ast 情况 */
+                  const noCommentText = removeFileComment(text, fileName);
 
-        children.forEach(child => {
-          if (child && child.kind === ts.SyntaxKind.JsxText) {
-            const text = child.getText();
-            /** 修复注释含有中文的情况，Angular 文件错误的 Ast 情况 */
-            const noCommentText = removeFileComment(text, fileName);
-
-            if (noCommentText.match(DOUBLE_BYTE_REGEX)) {
-              const start = child.getStart();
-              const end = child.getEnd();
-              const range = { start, end };
-
-              matches.push({
-                range,
-                text: text.trim(),
-                isString: false
-              });
-            }
-          }
-        });
+                  if (noCommentText.match(DOUBLE_BYTE_REGEX)) {
+                    const start = child.getStart();
+                    const end = child.getEnd();
+                    const range = { start, end };
+                    matches.push({
+                      range,
+                      text: text.trim(),
+                      isString: false,
+                      type: 'JsxText'
+                    });
+                  }
+                  break;
+                }
+              }
+            });
         break;
+      }
+       break;
       }
       case ts.SyntaxKind.TemplateExpression: {
         const { pos, end: endIndex } = node;
@@ -122,14 +104,52 @@ function findTextInTs(code: string, fileName: string) {
             isString: true
           });
         }
+        break;
+      }
+      case ts.SyntaxKind.StringLiteral: {
+        matchTsStringLiteralText(node, code, matches, fileName);
+        break;
       }
     }
-
     ts.forEachChild(node, visit);
   }
   ts.forEachChild(ast, visit);
 
   return matches;
+}
+
+// 匹配 ast 中 StringLiteral 类型中的内中文文本
+function matchTsStringLiteralText (node, code, matches, fileName) {
+    const { text } = node as ts.StringLiteral;
+    const start = node.getStart();
+    const end = node.getEnd();
+    const ignoreText = checkTextIsIgnore(code, start)
+    // 获取文本前标志判断文本类型
+    const textPrefix = (code.substr(start - 50, 50) || '').trim().split('').reverse().join('')
+    const isConsole = textPrefix.indexOf('.elosnoc') <= 6 && textPrefix.indexOf('.elosnoc') > -1
+    // console.log('text prefix ---', textPrefix)
+    if (text.match(DOUBLE_BYTE_REGEX) && !ignoreText && !isConsole) {
+      
+      let type = 'jsGlobal'
+      const isGlobal = ['.t(', '$t('].includes(code.substr(start - 3, 3))
+      if (fileName.includes('src/routes')) {
+        type = 'isRoutes'
+      } else if (textPrefix.indexOf('=') === 0) {
+        type = 'attrStr'
+      } else if (!isGlobal) {
+        type = 'jsStr'
+      }
+      const range = {
+        start: start + Number(isGlobal),
+        end: end - Number(isGlobal)
+      };
+      matches.push({
+        type,
+        range,
+        text,
+        isString: true
+      });
+    }
 }
 
 /**

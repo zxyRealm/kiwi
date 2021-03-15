@@ -3,6 +3,7 @@ const _ =  require('lodash');
 const request = require('request')
 const md5 = require('js-md5');
 const translate = require('translate')
+const googleTranslate = require('@vitalets/google-translate-api')
 // const daiduTranslate = require('baidu-translate-api')
 
 function daiduTranslate (text, options = {}) {
@@ -122,12 +123,19 @@ const g = function(){
 // });
 // console.log('all result ', asyncAllResult)
 
-translate('中共', {
-  engine: 'libre',
-  from: 'zh',
-  to: 'en'
-}).then((val) => {
-  console.log('translate text', val)
-})
+// translate('中共', {
+//   engine: 'libre',
+//   from: 'zh',
+//   to: 'en'
+// }).then((val) => {
+//   console.log('translate text', val)
+// }
+const package = require('../package.json')
 
+// console.log('package.json', typeof package, package.dependencies)
 // console.log('google translate', translate.getAllLanguage())
+googleTranslate('中', { tld: 'cn', form: 'zh-CN', to: 'en' }).then(res => {
+  console.log('google translate', res)
+}).catch(error => {
+  console.error(error)
+})

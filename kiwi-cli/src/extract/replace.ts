@@ -9,7 +9,7 @@ import * as prettier from 'prettier';
 import * as ts from 'typescript';
 import { readFile, writeFile } from './file';
 import { getLangData } from './getLangData';
-import { getProjectConfig, getLangDir, getAllMessages } from '../utils';
+import { getProjectConfig, getLangDir, getAllMessages, getProjectDependencies } from '../utils';
 import * as slash from 'slash2';
 import * as vueCompiler from 'vue-template-compiler'
 const chalk = require('chalk')
@@ -20,28 +20,31 @@ const srcLangDir = getLangDir(CONFIG.srcLang);
 // 更新语言包文件
 /*
  * type 更新类型
-      extract: 默认值，扫描更新，新生成文件名根据 keyValue 进行处理
-      sync: 同步更新，新生成文件直接应用 filePath
+    extract: 默认值，扫描更新，新生成文件名根据 keyValue 进行处理
+    sync: 同步更新，新生成文件直接应用 filePath
 */
 
 export function updateLangFiles(keyValue, text, validateDuplicate, filePath, type?: string, lang?: string) {
-  const isVueFile = _.endsWith(filePath, '.vue') || _.endsWith(filePath, '.js')
+  const packageJson = getProjectDependencies()
+  // 是否使用 typescript
+  const isTS = packageJson.typescript
+  // // 是否是Vue 项目
+  // const isVueFile = !!packageJson.vue
+  // // 是否 react 项目
+  // const isReact = packageJson.react
+  // // 是否使用 umi
+  // const isUmi = packageJson.umi
+
   let [, filename, ...restPath] = keyValue.split('.');
   let fullKey = restPath.join('.');
-  let targetFilename = `${srcLangDir}/${filename}.ts`;
+  // 根据项目文件生成语言文件目录，以 src 为基础目录在语言包文件进行映射，目录层级大于3时进行合并
   const isDefaultType = (!type || type === 'extract')
-  if (isVueFile) {
-    // 根据项目文件生成语言文件目录，以 src 为基础目录在语言包文件进行映射，目录层级大于3时进行合并
-    const files = slash(filePath).split('/')
-    let srcFiles = files.slice(files.findIndex(i => i === 'src') + 1)
-    srcFiles = srcFiles.length > 4 ? srcFiles.slice(0, 4) : srcFiles
-    filename = srcFiles.join('/').lastIndexOf('.') === -1 ? srcFiles.join('/') : srcFiles.join('/').substring(0, srcFiles.join('/').lastIndexOf('.'))
-    fullKey = keyValue.replace('-', '_');
-    targetFilename = !isDefaultType ? filePath : slash(`${srcLangDir}/${filename}.js`);
-  }
-  if (!isVueFile && !_.startsWith(keyValue, 'I18N.')) {
-    return;
-  }
+  const files = slash(filePath).split('/')
+  let srcFiles = files.slice(files.findIndex(i => i === 'src') + 1)
+  srcFiles = srcFiles.length > 4 ? srcFiles.slice(0, 4) : srcFiles
+  filename = srcFiles.join('/').lastIndexOf('.') === -1 ? srcFiles.join('/') : srcFiles.join('/').substring(0, srcFiles.join('/').lastIndexOf('.'))
+  fullKey = keyValue.replace('-', '_');
+  const targetFilename = !isDefaultType ? filePath : slash(`${srcLangDir}/${filename}.${isTS ? 'ts' : 'js'}`);
 
   if (isDefaultType) {
     const allMessages = getAllMessages()
@@ -52,7 +55,6 @@ export function updateLangFiles(keyValue, text, validateDuplicate, filePath, typ
       return
     }
   }
- 
 
   if (!fs.existsSync(targetFilename)) {
     fs.outputFileSync(targetFilename, generateNewLangFile(fullKey, text));
@@ -87,12 +89,8 @@ function prettierFile(fileContent) {
   try {
     return prettier.format(fileContent, {
       parser: 'typescript',
-      trailingComma: 'none',
       singleQuote: true,
-      semi: false,
-      proseWrap: 'never',
-      printWidth: 999
-
+      ...(CONFIG.prettierConfig || {})
     });
   } catch (e) {
     console.error(`代码格式化报错！${e.toString()}\n代码为：${fileContent}`);
@@ -106,11 +104,13 @@ function generateNewLangFile(key, value) {
   return prettierFile(`export default ${JSON.stringify(obj, null, 2)}`);
 }
 
+// 新增文件添加到 index 文件, 并自动 import & export
 function addImportToMainLangFile(newFilename, lang?: string) {
+  const isTs = getProjectDependencies().typescript
   let mainContent = '';
-  const filePath = `${getLangDir(lang) || srcLangDir}/index.js`
+  const filePath = `${getLangDir(lang) || srcLangDir}/index.${isTs ? 'ts': 'js'}`
   if (lang) {
-    mainContent = readFile(`${srcLangDir}/index.js`)
+    mainContent = readFile(`${srcLangDir}/index.${isTs ? 'ts' : 'js'}`)
   } else {
     const exportName = newFilename
       .replace(/[-_]/g, '/').split('/')
@@ -152,11 +152,11 @@ function addImportToMainLangFile(newFilename, lang?: string) {
  * @param filePath 文件路径
  */
 function hasImportI18N(filePath) {
-  // const isVueFile = _.endsWith(filePath, '.vue')
-  // if (isVueFile) return true
   const code = readFile(filePath);
-  if (code.includes(CONFIG.importI18N)) {
+  if (code.indexOf(CONFIG.importI18N) > -1) {
     return true
+  } else {
+    return false;
   }
   const ast = ts.createSourceFile('', code, ts.ScriptTarget.ES2015, true, ts.ScriptKind.TSX);
   let hasImportI18N = false;
@@ -209,7 +209,7 @@ function createImportI18N(filePath) {
   // const isTsxFile = _.endsWith(filePath, '.tsx');
   const isVueFile = _.endsWith(filePath, '.vue');
   // ts/tsx/js
-  const importStatement = `\n${CONFIG.importI18N}\n`;
+  const importStatement = `${CONFIG.importI18N}\n`;
   let pos = ast.getStart(ast, false);
   if (isVueFile) {
     const sfc = vueCompiler.parseComponent(code.toString());
@@ -227,9 +227,10 @@ function createImportI18N(filePath) {
  * @param validateDuplicate 是否校验文件中已经存在要写入的 key
  */
 function replaceAndUpdate(filePath, arg, val, validateDuplicate) {
+  const deps = getProjectDependencies()
   const code = readFile(filePath);
   const isHtmlFile = _.endsWith(filePath, '.html');
-  const isVueFile = _.endsWith(filePath, '.vue') || _.endsWith(filePath, '.js');
+  const isVueFile = !!deps.vue;
   val = val.replace(/-/g, '_')
   let newCode = code;
   let finalReplaceText = arg.text;
@@ -237,34 +238,38 @@ function replaceAndUpdate(filePath, arg, val, validateDuplicate) {
   // 若是字符串，删掉两侧的引号
   if (isVueFile) {
     newCode = replaceInVue(filePath, arg, val)
-  } else if (arg.isString) {
-    // 如果引号左侧是 等号，则可能是 jsx 的 props，此时要替换成 {
-    const preTextStart = start - 1;
-    const [last2Char, last1Char] = code.slice(preTextStart, start + 1).split('');
-    let finalReplaceVal = val;
-    if (last2Char === '=') {
-      if (isHtmlFile) {
-        finalReplaceVal = '{{' + val + '}}';
-      } else {
-        finalReplaceVal = '{' + val + '}';
-      }
-    }
-    // 若是模板字符串，看看其中是否包含变量
-    if (last1Char === '`') {
-      const varInStr = arg.text.match(/(\$\{[^\}]+?\})/g);
-      if (varInStr) {
-        const kvPair = varInStr.map((str, index) => {
-          return `val${index + 1}: ${str.replace(/^\${([^\}]+)\}$/, '$1')}`;
-        });
-        finalReplaceVal = `I18N.template(${val}, { ${kvPair.join(',\n')} })`;
-
-        varInStr.forEach((str, index) => {
-          finalReplaceText = finalReplaceText.replace(str, `{val${index + 1}}`);
-        });
-      }
-    }
-
-    newCode = `${code.slice(0, start)}${finalReplaceVal}${code.slice(end)}`;
+  } else if (deps.umi) {
+    // 模板字符串中的插值语法 ${key} 需要替换成 {key} 的形式
+    newCode = replaceInJsx(filePath, arg, val, txt => {
+      finalReplaceText = txt
+    })
+    // const preTextStart = start - 1;
+    // const [last2Char, last1Char] = code.slice(preTextStart, start + 1).split('');
+    // let finalReplaceVal = val;
+    // if (last2Char === '=') {
+    //   if (isHtmlFile) {
+    //     finalReplaceVal = '{{' + val + '}}';
+    //   } else {
+    //     finalReplaceVal = '{' + val + '}';
+    //   }
+    // }
+    // // 若是模板字符串，看看其中是否包含变量
+    // if (last1Char === '`') {
+    //   const varInStr = arg.text.match(/(\$\{[^\}]+?\})/g);
+    //   if (varInStr) {
+    //     const kvPair = varInStr.map((str, index) => {
+    //       return `val${index + 1}: ${str.replace(/^\${([^\}]+)\}$/, '$1')}`;
+    //     });
+    //     finalReplaceVal = `Intl().formatMessage({ id: ${val} }, { ${kvPair.join(',\n')} })`;
+    //     varInStr.forEach((str, index) => {
+    //       finalReplaceText = finalReplaceText.replace(str, `{val${index + 1}}`);
+    //     });
+    //   }
+    // } else {
+    //   finalReplaceVal = `Intl().formatMessage({ id: '${val}'})`
+    // }
+    // newCode = replaceInJsx(filePath, arg, val)
+    // newCode = `${code.slice(0, start)}${finalReplaceVal}${code.slice(end)}`;
   } else {
     if (isHtmlFile) {
       newCode = `${code.slice(0, start)}{{${val}}}${code.slice(end)}`;
@@ -310,7 +315,39 @@ function replaceInVue(filePath, arg, val) {
       finalReplaceVal = `\${i18n.t('${val}')}`
       break
   }
-
   return `${code.slice(0, start)}${finalReplaceVal}${code.slice(end)}`;
 }
+
+// 替换 jsx 语法文件中 key 值
+function replaceInJsx(filePath, arg, val, callback) {
+  const code = readFile(filePath)
+  const { start, end } = arg.range
+  let finalReplaceVal = val
+
+  switch(arg.type) {
+    case 'jsTemplate': {
+      const values = (arg.text?.match(/\$\{(\w+)\}/g) || []).map(key => key.replace(/\$\{(\w+)\}/g, '$1')).join(', ');
+      // 更新text 回调
+      callback && callback(arg.text.replace(/\$\{/g,'{'))
+      arg.text = arg.text.replace(/\$\{/g,'{')
+      // 示例： `姓名${name}, 年龄{age}, 生日${year}` 插值语法中插入值提取 { name, age, year }
+      // 差值语法只允许使用直接变量值，不允许使用运算表达式
+      finalReplaceVal = !values ? `intl.formatMessage({ id: '${val}' })` : `intl.formatMessage({ id: '${val}' }, { ${values} })`;
+      break
+    }
+    case 'attrStr':
+    case 'JsxElement':
+    case 'JsxText':
+      finalReplaceVal = `{intl.formatMessage({ id: '${val}' })}`;
+      break;
+    case 'isRoutes':
+      finalReplaceVal = `'${val}'`;
+      break;
+    default:
+      finalReplaceVal = `intl.formatMessage({ id: '${val}' })`;
+    break;
+  }
+  return `${code.slice(0, start)}${finalReplaceVal}${code.slice(end)}`;
+}
+
 export { replaceAndUpdate, hasImportI18N, createImportI18N };
