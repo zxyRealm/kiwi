@@ -90,4 +90,6 @@ function getSuggestLangObj() {
   return finalLangObj;
 }
 
+console.log('all lang data', getSuggestLangObj())
+
 export { getSuggestLangObj, getLangData };

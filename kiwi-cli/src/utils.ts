@@ -157,28 +157,42 @@ function translateText (text, toLang) {
     to: PROJECT_CONFIG.langMap[toLang] || 'en',
     ...CONFIG.translateOptions
   };
+  const startTime = Date.now();
+  const minBreakTime = Number(CONFIG.translateOptions.minBreakTime) || 1500;
+  const delayFun = (callback) => {
+    const breakTime = Date.now() - startTime;
+    const delay = breakTime < minBreakTime ? minBreakTime - breakTime : 0;
+    console.log('break time ++++++', minBreakTime, breakTime, delay)
+    setTimeout(() => {
+      callback && callback()
+    }, delay)
+  }
   return new Promise((resolve, reject) => {
     Translate(text, options).then((res: translateResponseType) => {
       // let translatedText = res.trans_result[0].dst
-      setTimeout(() => {
-        resolve(res)
-      }, 0)
+      delayFun(() => resolve(res))
+      // const breakTime = Date.now() - startTime;
+      // const delay = breakTime < minBreakTime ? minBreakTime - breakTime : 0;
+      // console.log('break time ++++++', minBreakTime, breakTime, delay)
+      // setTimeout(() => {
+      //   resolve(res)
+      // }, delay)
       // resolve(translatedText)
     }).catch(error => {
       log(chalk.red(error))
       log('translate error', chalk.red(`error code ${error.errno || error.error_code}`, error.errmsg || error.error_msg))
-      reject(error)
+      delayFun(() => reject(error))
+      // reject(error)
     });
   })
 }
-
+// 查询 value 值与当前 text 相同的 key
 function findMatchKey(langObj, text) {
   for (const key in langObj) {
     if (langObj[key] === text) {
       return key;
     }
   }
-
   return null;
 }
 
@@ -348,7 +362,17 @@ function getProjectDependencies () {
     ...packageJSON.dependencies
   }
 }
-
+// 线程式处理异步任务数组
+async function processTaskArray (taskArray) {
+  try {
+    for (const item of taskArray) {
+      await item?.();
+    }
+    return Promise.resolve();
+  } catch (error) {
+    return Promise.reject(error)
+  }
+}
 
 export {
   getKiwiDir,
@@ -373,5 +397,6 @@ export {
   getProjectVersion,
   checkTextIsIgnore,
   readProjectFile,
-  getProjectDependencies
+  getProjectDependencies,
+  processTaskArray
 };

@@ -32,7 +32,6 @@ function daiduTranslate (text, options = {}) {
     }, function(error, response, body) {
         if (error) return reject(error)
         resolve(body)
-        console.log('body ========', body)
     })
   })
 }

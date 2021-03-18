@@ -8,9 +8,13 @@ import * as slash from 'slash2';
 import { getSpecifiedFiles, readFile, writeFile } from './file';
 import { findChineseText } from './findChineseText';
 import { getSuggestLangObj } from './getLangData';
-import { translateText, findMatchKey, findMatchValue } from '../utils';
+import {
+  translateText,
+  findMatchKey,
+  findMatchValue,
+  getProjectConfig
+} from '../utils';
 import { replaceAndUpdate, hasImportI18N, createImportI18N } from './replace';
-import { getProjectConfig } from '../utils';
 const chalk = require('chalk')
 const log = console.log
 const CONFIG = getProjectConfig();
@@ -73,130 +77,150 @@ function getAllAsyncResults (list, func, formatArgs = val => val) {
     recursive(0)
   })
 }
+
+// 将对象的 key: value 颠倒
+function reverseObjectKeyValue (obj) {
+  if (!obj) return {}
+  const newObject = {}
+  return Object.keys(obj).reduce((pre, curr) => {
+    return {
+      ...pre,
+      [obj[curr]]: curr
+    }
+  }, {})
+}
+
+// 截取要翻译成 key 的中文
+const formatText = (txt) => {
+  const reg = /[^a-zA-Z\x00-\xff]+/g;
+  const findText = txt?.match(reg);
+  const transText = findText ? findText.join('').slice(0, 6) : '中文符号';
+  return transText
+}
+
 /**
  * 递归匹配项目中所有的代码的中文
  * @param {dirPath} 文件夹路径
  */
 function extractAll(dirPath?: string) {
   const dir = dirPath || './src';
-  const allTargetStrs = findAllChineseText(dir);
+  const allTargetStrings = findAllChineseText(dir);
 
-  if (!allTargetStrs.length) {
+  if (!allTargetStrings.length) {
     log(chalk.yellow('没有发现可替换的文案！'));
     return;
   }
   const finalLangObj = getSuggestLangObj()
-  allTargetStrs.forEach(async item => {
-    // 当前文件名
-    const currentFilename = item.file;
-    // 文件中文案信息
-    const targetStrs = item.texts;
-    const pathList = slash(currentFilename.replace(/(.+)\.[a-zA-Z]+$/, '$1')).split('/')
-    let suggestion = pathList.slice(pathList.findIndex(i => i === 'src') + 1);
-    const virtualMemory = {};
-    /** 如果没有匹配到 Key */
-    if (!(suggestion && suggestion.length)) {
-      // slash 路径转换工具
-      /* Example
-      * const string = path.join('foo', 'bar');
-      * Unix    => foo/bar
-      * Windows => foo\\bar
-      * slash(string)
-      * Unix    => foo/bar
-      * window  => foo/bar
-      */
+  // 暂存文件中所有的中文文本
+  const virtualMemory = {};
+  const start = Date.now();
+  // 转换成异步任务列表
+  const taskList  = async () => {
+    for (const item of allTargetStrings) {
 
-      const names = slash(currentFilename).split('/');
-      const fileName = _.last(names) as any;
-      const fileKey = fileName.split('.')[0].replace(new RegExp('-', 'g'), '_');
-      const dir = names[names.length - 2].replace(new RegExp('-', 'g'), '_');
-      // if (dir === fileKey) {
-      //   suggestion = [dir];
-      // } else {
-      //   suggestion = [dir, fileKey];
-      // }
-    }
-    const formatText = (data) => {
-      const reg = /[^a-zA-Z\x00-\xff]+/g;
-      const findText = data.text.match(reg);
-      const transText = findText ? findText.join('').slice(0, 6) : '中文符号';
-      return transText
-    }
-    // console.log(targetStrs)
-    // 翻译提取文案
-    getAllAsyncResults(targetStrs, translateText, formatText)
-      .then(translateTexts => {
-        console.log('translate texts', translateTexts)
+    // 文件名
+    const fileName = item.file
+    // 中文文案列表
+    const targetStrings = item.texts;
 
-        const replaceableStrs = targetStrs.reduce((prev, curr, i) => {
-          const key = findMatchKey(finalLangObj, curr.text);
-          if (!virtualMemory[curr.text]) {
-            if (key) {
-              virtualMemory[curr.text] = key;
-              return prev.concat({
+    const pathList = slash(fileName).replace(/(.+)\.[a-zA-Z]+$/, '$1').split('/');
+    const suggestion = pathList.slice(pathList.findIndex(i => i === 'src') + 1);
+    
+    const subTasks = () => new Promise(async (resolve, reject) => {
+      try {
+        // 填充翻译得到的 key 值
+        const getStrings = async () => {
+          const includeKeyList = [];
+          for (const curr of targetStrings) {
+            console.log('curr', fileName, Date.now() - start, curr.text)
+            // 判断已有语言文件是否存在相同的中文信息，如果存在返回对应的 key
+            const key = findMatchKey(finalLangObj, curr.text);
+            // 原文件或者已翻译的内容中如果存在当前要翻译的中文文本，则直接取用已有的 key 值
+            if (!virtualMemory[curr.text]) {
+              if (key) {
+                virtualMemory[curr.text] = key;
+                includeKeyList.push({
+                  target: curr,
+                  key
+                })
+              } else {
+                try {
+                  const uuidKey = `${randomstring.generate({
+                    length: 8,
+                    charset: 'qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM'
+                  })}`;
+                  // 翻译后文本
+                  // let englishText;
+                  const englishText = await translateText(formatText(curr.text), 'en').catch(() =>{}) as string;
+              
+                  // 驼峰格式转换
+                  const handleText = englishText ? _.camelCase(englishText) : uuidKey;
+                  // 对于翻译后的英文再次过滤，只保留英文字符
+                  const purifyText = handleText.replace(/[^a-z]/ig, '');
+                  const transText = purifyText || 'chineseSymbols';
+                  let transKey = `${suggestion.length ? suggestion.join('_') + '_' : ''}${transText}`;
+                  let occurTime = 1;
+                  // 防止出现翻译后 key 相同, 但是对应的中文文案不同的情况
+                  while (
+                    findMatchValue(finalLangObj, transKey) !== curr.text &&
+                    _.keys(finalLangObj).includes(`${transKey}${occurTime >= 2 ? occurTime : ''}`)
+                  ) {
+                    occurTime++;
+                  }
+                  if (occurTime >= 2) {
+                    transKey = `${transKey}${occurTime}`;
+                  }
+                  virtualMemory[curr.text] = transKey;
+                  finalLangObj[transKey] = curr.text;
+                  includeKeyList.push({
+                    target: curr,
+                    key: transKey
+                  })
+                } catch(e) {
+                  Promise.reject(e);
+                  continue;
+                }
+              }
+            } else {
+              includeKeyList.push({
                 target: curr,
-                key
-              });
+                key: virtualMemory[curr.text]
+              })
             }
-            const uuidKey = `${randomstring.generate({
-              length: 8,
-              charset: 'qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM'
-            })}`;
-            const handleText = translateTexts[i] ? _.camelCase(translateTexts[i] as string) : uuidKey;
-            const reg = /[a-zA-Z]+/;
-            // 对于翻译后的英文再次过滤，只保留英文字符
-            const purifyText = handleText
-              .split('')
-              .filter(letter => reg.test(letter))
-              .join('');
-            const transText = purifyText || 'chineseSymbols';
-            let transKey = `${suggestion.length ? suggestion.join('_') + '_' : ''}${transText}`;
-            let occurTime = 1;
-            // 防止出现前四位相同但是整体文案不同的情况
-            while (
-              findMatchValue(finalLangObj, transKey) !== curr.text &&
-              _.keys(finalLangObj).includes(`${transKey}${occurTime >= 2 ? occurTime : ''}`)
-            ) {
-              occurTime++;
-            }
-            if (occurTime >= 2) {
-              transKey = `${transKey}${occurTime}`;
-            }
-            virtualMemory[curr.text] = transKey;
-            finalLangObj[transKey] = curr.text;
-            return prev.concat({
-              target: curr,
-              key: transKey
-            });
-          } else {
-            return prev.concat({
-              target: curr,
-              key: virtualMemory[curr.text]
-            });
           }
-        }, []);
-        replaceableStrs
+          return includeKeyList;
+        };
+        const replaceableStrings = await getStrings()
+        // 翻译完成即可继续开始下一个文件翻译处理，无需等待文件的写入完成
+        resolve(true)
+        // 替换源文件中的中文，并将 key: value 值写入语言包文件
+        replaceableStrings
           .reduce((prev, obj) => {
             return prev.then(() => {
-              return replaceAndUpdate(currentFilename, obj.target, `${obj.key}`, false);
+              return replaceAndUpdate(fileName, obj.target, `${obj.key}`, false);
             });
           }, Promise.resolve())
           .then(() => {
             // 添加 import I18N
-            if (!hasImportI18N(currentFilename)) {
-              const code = createImportI18N(currentFilename);
-
-              writeFile(currentFilename, code);
+            if (!hasImportI18N(fileName)) {
+              const code = createImportI18N(fileName);
+              writeFile(fileName, code);
             }
-            log(chalk.green(`${currentFilename}替换完成！`));
+            log(chalk.green(`${fileName}替换完成！`));
           })
           .catch(e => {
             log(chalk.red(e.message));
           });
-      }).catch(err => {
-        log(chalk.red((err && typeof err === 'object' && JSON.stringify(err)) || err))
-      })
-  });
+      } catch(error) {
+        log(chalk.red((error && typeof error === 'object' && JSON.stringify(error)) || error))
+        reject(error)
+      }
+    })
+    await subTasks();
+  }
+  }
+
+  taskList()
 }
 
 export { extractAll };

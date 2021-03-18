@@ -15,6 +15,7 @@
         {{`${$t(`这是一个内嵌的 slot-scope 插槽 {title}`, { title })}`}}
       </template>
       <!-- ignore {{text}} -->
+      <p>你和谁长得比较像呢</p>
     </template>
   </div>
 </template>

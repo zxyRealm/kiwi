@@ -11,7 +11,8 @@
     "concurrentLimit": 10,
     "requestOptions": {},
     "appid": "20210105000663752",
-    "secretKey": "W1uUbJOMvFevPj0OcjG1"
+    "secretKey": "W1uUbJOMvFevPj0OcjG1",
+    "minBreakTime": 1500
   },
   "excelOptions": {
     "valueIndex": 2

@@ -50,7 +50,9 @@ export function updateLangFiles(keyValue, text, validateDuplicate, filePath, typ
     const allMessages = getAllMessages()
     if (allMessages[fullKey] !== undefined) {
       if (allMessages[fullKey] !== text) {
-        throw new Error(chalk.red(`重复 key 值  ${fullKey}  ${text}`))
+        // key 相同，value 不相同时，自动重命名key
+        fullKey = `${fullKey}1`
+        throw new Error(chalk.red(`重复 key 值  ${fullKey}  ${text}  ${filePath}`))
       }
       return
     }
@@ -230,7 +232,8 @@ function replaceAndUpdate(filePath, arg, val, validateDuplicate) {
   const deps = getProjectDependencies()
   const code = readFile(filePath);
   const isHtmlFile = _.endsWith(filePath, '.html');
-  const isVueFile = !!deps.vue;
+  const isVueFile = !!deps.vue || _.endsWith(filePath, '.vue');
+  const isReact = deps.umi || _.endsWith(filePath, '.tsx') || _.endsWith(filePath, '.jsx');
   val = val.replace(/-/g, '_')
   let newCode = code;
   let finalReplaceText = arg.text;
@@ -238,38 +241,11 @@ function replaceAndUpdate(filePath, arg, val, validateDuplicate) {
   // 若是字符串，删掉两侧的引号
   if (isVueFile) {
     newCode = replaceInVue(filePath, arg, val)
-  } else if (deps.umi) {
+  } else if (isReact) {
     // 模板字符串中的插值语法 ${key} 需要替换成 {key} 的形式
     newCode = replaceInJsx(filePath, arg, val, txt => {
       finalReplaceText = txt
     })
-    // const preTextStart = start - 1;
-    // const [last2Char, last1Char] = code.slice(preTextStart, start + 1).split('');
-    // let finalReplaceVal = val;
-    // if (last2Char === '=') {
-    //   if (isHtmlFile) {
-    //     finalReplaceVal = '{{' + val + '}}';
-    //   } else {
-    //     finalReplaceVal = '{' + val + '}';
-    //   }
-    // }
-    // // 若是模板字符串，看看其中是否包含变量
-    // if (last1Char === '`') {
-    //   const varInStr = arg.text.match(/(\$\{[^\}]+?\})/g);
-    //   if (varInStr) {
-    //     const kvPair = varInStr.map((str, index) => {
-    //       return `val${index + 1}: ${str.replace(/^\${([^\}]+)\}$/, '$1')}`;
-    //     });
-    //     finalReplaceVal = `Intl().formatMessage({ id: ${val} }, { ${kvPair.join(',\n')} })`;
-    //     varInStr.forEach((str, index) => {
-    //       finalReplaceText = finalReplaceText.replace(str, `{val${index + 1}}`);
-    //     });
-    //   }
-    // } else {
-    //   finalReplaceVal = `Intl().formatMessage({ id: '${val}'})`
-    // }
-    // newCode = replaceInJsx(filePath, arg, val)
-    // newCode = `${code.slice(0, start)}${finalReplaceVal}${code.slice(end)}`;
   } else {
     if (isHtmlFile) {
       newCode = `${code.slice(0, start)}{{${val}}}${code.slice(end)}`;

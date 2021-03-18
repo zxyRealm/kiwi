@@ -60,6 +60,7 @@ export function Translate (text: string, options: Options) {
     sign,
     ...options
   }
+
   return new Promise((resolve, reject) => {
     request({
       url: `http://api.fanyi.baidu.com/api/trans/vip/translate?${qs.stringify(params)}`,
@@ -67,9 +68,8 @@ export function Translate (text: string, options: Options) {
       headers: {
         'Content-Type': 'application/json'
       }
-    }, function(error, response, body) {
-        if (error) return reject(error)
-        console.log('body ========', typeof body, body)
+    }, (error, response, body) => {
+      if (error) return reject(error)
         try {
           const result = JSON.parse(body);
           if (result.error_code) {
@@ -81,10 +81,6 @@ export function Translate (text: string, options: Options) {
         } catch (error) {
           console.error(error)
         }
-    // googleTranslate(params.q, params).then(res => {
-    //   resolve(res.text)
-    // }).catch((error) => {
-    //   reject(error)
-    // })
+    })
   })
 }

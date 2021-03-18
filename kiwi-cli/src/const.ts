@@ -26,6 +26,7 @@ interface Config {
       timeout: number;
       appid: string;
       secretKey: string;
+      minBreakTime?: number;
       [key: string]: any;
     },
     prettierConfig?:{},
@@ -74,7 +75,8 @@ export const PROJECT_CONFIG: Config = {
       appid: '',
       secretKey: '',
       concurrentLimit: 10,
-      timeout: 6000
+      timeout: 6000,
+      minBreakTime: 1500,
     },
     excelOptions: {
       keyIndex: 0,
