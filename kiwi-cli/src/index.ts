@@ -11,7 +11,8 @@ import { findUnUsed } from './unused';
 import { mockLangs } from './mock';
 import { extractAll } from './extract/extract';
 import { update } from './update'
-import { syncExcel } from './excel-sync'
+import { sameExcel } from './excel-same'
+import { exportRepeatWords } from './deduplication'
 import * as ora from 'ora';
 import * as chalk from 'chalk';
 const leven = require('leven')
@@ -43,8 +44,9 @@ program
   .option('--export [file] [lang]', '导出未翻译的文案')
   .option('--excel [langDir] [lang]', '导出 excel')
   .option('--compare [originFile] [targetFile]', '对比导出 key 差异')
-  .option('--same [originFile] [targetFile]', '同步excel中相同内容')
+  .option('--same [originFile] [targetFile] [targetFileValueIndex] [targetFileKeyIndex]', '同步excel中相同内容')
   .option('--update [file] [lang]', '更新语言包')
+  .option('--dedup', '提取重复文案')
   .option('--sync', '同步各种语言的文案')
   .option('--mock', '使用 Google 翻译')
   .option('--unused', '导出未使用的文案')
@@ -90,13 +92,19 @@ if (program.compare) {
 if (program.same) {
   spining('excel 相同内容同步', () => {
     if (program.same === true || program.args.length === 0) {
-      console.log('请按格式输入：--same originFile targetFile');
+      console.log('请按格式输入：--same originFile targetFile [targetFileValueIndex] [targetFileKeyIndex]');
     } else if (program.args) {
-      syncExcel(program.same, program.args[0]);
+      console.log('args-----', program.args)
+      sameExcel(program.same, program.args[0], program.args[1]);
     }
   })
 }
 
+if (program.dedup) {
+  spining('提取重复文案', () => {
+    exportRepeatWords()
+  })
+}
 
 // export all language excel file
 program

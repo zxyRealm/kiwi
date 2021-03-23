@@ -136,50 +136,48 @@ function extractAll(dirPath?: string) {
             // 判断已有语言文件是否存在相同的中文信息，如果存在返回对应的 key
             const key = findMatchKey(finalLangObj, curr.text);
             // 原文件或者已翻译的内容中如果存在当前要翻译的中文文本，则直接取用已有的 key 值
-            if (!virtualMemory[curr.text]) {
-              if (key) {
-                virtualMemory[curr.text] = key;
+            if (key) {
+              virtualMemory[curr.text] = key;
+              includeKeyList.push({
+                target: curr,
+                key
+              })
+            } else if (!virtualMemory[curr.text]) {
+              try {
+                const uuidKey = `${randomstring.generate({
+                  length: 8,
+                  charset: 'qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM'
+                })}`;
+                // 翻译后文本
+                // let englishText;
+                const englishText = await translateText(formatText(curr.text), 'en').catch(() =>{}) as string;
+            
+                // 驼峰格式转换
+                const handleText = englishText ? _.camelCase(englishText) : uuidKey;
+                // 对于翻译后的英文再次过滤，只保留英文字符
+                const purifyText = handleText.replace(/[^a-z]/ig, '');
+                const transText = purifyText || 'chineseSymbols';
+                let transKey = `${suggestion.length ? suggestion.join('_') + '_' : ''}${transText}`;
+                let occurTime = 1;
+                // 防止出现翻译后 key 相同, 但是对应的中文文案不同的情况
+                while (
+                  findMatchValue(finalLangObj, transKey) !== curr.text &&
+                  _.keys(finalLangObj).includes(`${transKey}${occurTime >= 2 ? occurTime : ''}`)
+                ) {
+                  occurTime++;
+                }
+                if (occurTime >= 2) {
+                  transKey = `${transKey}${occurTime}`;
+                }
+                virtualMemory[curr.text] = transKey;
+                finalLangObj[transKey] = curr.text;
                 includeKeyList.push({
                   target: curr,
-                  key
+                  key: transKey
                 })
-              } else {
-                try {
-                  const uuidKey = `${randomstring.generate({
-                    length: 8,
-                    charset: 'qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM'
-                  })}`;
-                  // 翻译后文本
-                  // let englishText;
-                  const englishText = await translateText(formatText(curr.text), 'en').catch(() =>{}) as string;
-              
-                  // 驼峰格式转换
-                  const handleText = englishText ? _.camelCase(englishText) : uuidKey;
-                  // 对于翻译后的英文再次过滤，只保留英文字符
-                  const purifyText = handleText.replace(/[^a-z]/ig, '');
-                  const transText = purifyText || 'chineseSymbols';
-                  let transKey = `${suggestion.length ? suggestion.join('_') + '_' : ''}${transText}`;
-                  let occurTime = 1;
-                  // 防止出现翻译后 key 相同, 但是对应的中文文案不同的情况
-                  while (
-                    findMatchValue(finalLangObj, transKey) !== curr.text &&
-                    _.keys(finalLangObj).includes(`${transKey}${occurTime >= 2 ? occurTime : ''}`)
-                  ) {
-                    occurTime++;
-                  }
-                  if (occurTime >= 2) {
-                    transKey = `${transKey}${occurTime}`;
-                  }
-                  virtualMemory[curr.text] = transKey;
-                  finalLangObj[transKey] = curr.text;
-                  includeKeyList.push({
-                    target: curr,
-                    key: transKey
-                  })
-                } catch(e) {
-                  Promise.reject(e);
-                  continue;
-                }
+              } catch(e) {
+                Promise.reject(e);
+                continue;
               }
             } else {
               includeKeyList.push({

@@ -46,18 +46,6 @@ export function updateLangFiles(keyValue, text, validateDuplicate, filePath, typ
   fullKey = keyValue.replace('-', '_');
   const targetFilename = !isDefaultType ? filePath : slash(`${srcLangDir}/${filename}.${isTS ? 'ts' : 'js'}`);
 
-  if (isDefaultType) {
-    const allMessages = getAllMessages()
-    if (allMessages[fullKey] !== undefined) {
-      if (allMessages[fullKey] !== text) {
-        // key 相同，value 不相同时，自动重命名key
-        fullKey = `${fullKey}1`
-        throw new Error(chalk.red(`重复 key 值  ${fullKey}  ${text}  ${filePath}`))
-      }
-      return
-    }
-  }
-
   if (!fs.existsSync(targetFilename)) {
     fs.outputFileSync(targetFilename, generateNewLangFile(fullKey, text));
     addImportToMainLangFile(filename, lang);
@@ -87,7 +75,7 @@ export function updateLangFiles(keyValue, text, validateDuplicate, filePath, typ
  * 使用 Prettier 格式化文件
  * @param fileContent
  */
-function prettierFile(fileContent) {
+export function prettierFile(fileContent) {
   try {
     return prettier.format(fileContent, {
       parser: 'typescript',
