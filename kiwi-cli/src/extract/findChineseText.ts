@@ -37,7 +37,7 @@ function removeFileComment(code, fileName) {
  * 查找 Ts 文件中的中文
  * @param code 
  */
-function findTextInTs(code: string, fileName: string) {
+function findTextInTs(code: string, fileName: string, isJSON?: boolean, startIndex?: number) {
   const matches = [];
   const ast = ts.createSourceFile('', code, ts.ScriptTarget.ES2015, true, ts.ScriptKind.TSX);
 
@@ -107,7 +107,7 @@ function findTextInTs(code: string, fileName: string) {
         break;
       }
       case ts.SyntaxKind.StringLiteral: {
-        matchTsStringLiteralText(node, code, matches, fileName);
+        matchTsStringLiteralText(node, code, matches, fileName, isJSON, startIndex);
         break;
       }
     }
@@ -119,15 +119,14 @@ function findTextInTs(code: string, fileName: string) {
 }
 
 // 匹配 ast 中 StringLiteral 类型中的内中文文本
-function matchTsStringLiteralText (node, code, matches, fileName) {
+function matchTsStringLiteralText (node, code, matches, fileName, isJSON, startIndex = 0) {
     const { text } = node as ts.StringLiteral;
-    const start = node.getStart();
-    const end = node.getEnd();
+    const start = node.getStart() + startIndex;
+    const end = node.getEnd() + startIndex;
     const ignoreText = checkTextIsIgnore(code, start)
     // 获取文本前标志判断文本类型
     const textPrefix = (code.substr(start - 50, 50) || '').trim().split('').reverse().join('')
     const isConsole = textPrefix.indexOf('.elosnoc') <= 6 && textPrefix.indexOf('.elosnoc') > -1
-    // console.log('text prefix ---', textPrefix)
     if (text.match(DOUBLE_BYTE_REGEX) && !ignoreText && !isConsole) {
       
       let type = 'jsGlobal'
@@ -143,12 +142,18 @@ function matchTsStringLiteralText (node, code, matches, fileName) {
         start: start + Number(isGlobal),
         end: end - Number(isGlobal)
       };
-      matches.push({
-        type,
-        range,
-        text,
-        isString: true
-      });
+
+      if (isJSON && /^(\{\{).*(\}\})$/.test(text)) {
+        console.log('is JSON -------')
+        matches.push(...findTextInTs(text, fileName, isJSON, start + 1))
+      } else {
+        matches.push({
+          type,
+          range,
+          text,
+          isString: true
+        });
+      }
     }
 }
 
@@ -361,4 +366,4 @@ function findChineseText(code: string, fileName: string) {
   return findTextInTs(code, fileName);
 }
 
-export { findChineseText };
+export { findChineseText, findTextInTs };

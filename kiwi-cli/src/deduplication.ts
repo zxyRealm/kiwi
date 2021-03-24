@@ -3,8 +3,7 @@
  * @author 折威
  * @desc  提取重复文案
  */
- import { getProjectDependencies, getAllMessages } from './utils'
- import { prettierFile} from './extract/replace'
+ import { getProjectDependencies, getAllMessages, prettierFile } from './utils'
  const fs = require('fs-extra')
  
  require('ts-node').register({

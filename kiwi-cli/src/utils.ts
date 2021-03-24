@@ -11,6 +11,7 @@ import {
   Options,
   translateResponseType
 } from './const';
+import * as prettier from 'prettier'
 import * as ts from 'typescript'
 import { readFiles } from './extract/file'
 import * as slash from 'slash2';
@@ -268,9 +269,9 @@ function getAllData (files: Array<string>, filter = (...arg) => true) {
 
 // 读取 sheet 表中所有 key 值，默认第一列为 key
 function readSheetData (filename) {
-  if (!filename) return []
+  if (!filename) return {}
   const config = getProjectConfig()
-  const { keyIndex, valueIndex } = { ...config.excelOptions }
+  const { keyIndex = 0, valueIndex = 1 } = { ...config.excelOptions }
   const sheets = xlsx.parse(filename)
   const keysObject = {}
   sheets.forEach(sheet => {
@@ -374,6 +375,24 @@ async function processTaskArray (taskArray) {
   }
 }
 
+/*
+ * 使用 Prettier 格式化文件
+ * @param fileContent
+ */
+function prettierFile(fileContent) {
+  const CONFIG = getProjectConfig()
+  try {
+    return prettier.format(fileContent, {
+      parser: 'typescript',
+      singleQuote: true,
+      ...(CONFIG.prettierConfig || {})
+    });
+  } catch (e) {
+    console.error(`代码格式化报错！${e.toString()}\n代码为：${fileContent}`);
+    return fileContent;
+  }
+}
+
 export {
   getKiwiDir,
   getLangDir,
@@ -398,5 +417,6 @@ export {
   checkTextIsIgnore,
   readProjectFile,
   getProjectDependencies,
-  processTaskArray
+  processTaskArray,
+  prettierFile
 };

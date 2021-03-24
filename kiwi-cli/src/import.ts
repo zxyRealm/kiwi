@@ -17,14 +17,14 @@ import { getAllMessages, getProjectConfig, traverse } from './utils';
 
 const CONFIG = getProjectConfig();
 
-function readSheetData (filename, index = 2) {
+function readSheetData (filename, valueIndex = 2, keyIndex = 0) {
   if (!filename) return {}
   const sheets = xlsx.parse(filename)
   const keysMap = {}
   sheets.forEach(sheet => {
     const { data } = sheet
     data.forEach(row => {
-      keysMap[row[0]] = row[index]
+      keysMap[row[keyIndex]] = row[valueIndex]
     })
   })
 

@@ -88,4 +88,4 @@ function exportMessages(file?: string, lang?: string) {
     });
 }
 
-export { exportMessages };
+export { exportMessages, createXlsxFile };

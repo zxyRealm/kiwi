@@ -84,8 +84,15 @@ kiwi --export [filePath] en-US
 
 导出未翻译的文案
 
+### kiwi `--json`
+```
+# 导出 json 数据中文文案
+kiwi --json
 
+# 更新语言文件
+kiwi --json [excelFilePath] [lang]
 
+```
 ### kiwi `--excel`
 
 将语言包按照语言类型导出成单个excel

@@ -7,7 +7,6 @@ import * as path from 'path';
 import * as _ from 'lodash';
 import * as fs from 'fs-extra';
 import * as slash from 'slash2';
-
 /*
  * 获取文件夹下符合要求的所有文件
  * @function getSpecifiedFiles
@@ -15,7 +14,7 @@ import * as slash from 'slash2';
  * @param {ignoreDirectory} 忽略文件夹 {ignoreFile} 忽略的文件
  */
 // declare 
-function getSpecifiedFiles(dir, includeOption, excludeOption): string[] {
+function getSpecifiedFiles(dir, includeOption?, excludeOption?): string[] {
   const files = readFiles(dir)
   return files
     .map(f => slash(f))

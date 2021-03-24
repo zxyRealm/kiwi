@@ -5,11 +5,10 @@
 
 import * as fs from 'fs-extra';
 import * as _ from 'lodash';
-import * as prettier from 'prettier';
 import * as ts from 'typescript';
 import { readFile, writeFile } from './file';
 import { getLangData } from './getLangData';
-import { getProjectConfig, getLangDir, getAllMessages, getProjectDependencies } from '../utils';
+import { getProjectConfig, getLangDir, getProjectDependencies, prettierFile } from '../utils';
 import * as slash from 'slash2';
 import * as vueCompiler from 'vue-template-compiler'
 const chalk = require('chalk')
@@ -71,22 +70,6 @@ export function updateLangFiles(keyValue, text, validateDuplicate, filePath, typ
   }
 }
 
-/*
- * 使用 Prettier 格式化文件
- * @param fileContent
- */
-export function prettierFile(fileContent) {
-  try {
-    return prettier.format(fileContent, {
-      parser: 'typescript',
-      singleQuote: true,
-      ...(CONFIG.prettierConfig || {})
-    });
-  } catch (e) {
-    console.error(`代码格式化报错！${e.toString()}\n代码为：${fileContent}`);
-    return fileContent;
-  }
-}
 
 function generateNewLangFile(key, value) {
   const obj = {[key]: value};

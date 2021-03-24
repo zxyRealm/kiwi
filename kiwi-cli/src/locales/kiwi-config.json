@@ -15,6 +15,7 @@
     "minBreakTime": 1500
   },
   "excelOptions": {
+    "keyIndex": 1,
     "valueIndex": 2
   },
   "importI18N": "import i18n from '@/locales'",
@@ -23,7 +24,8 @@
     "src/locales",
     "src/extract",
     ".ts$",
-    "src/translate.js"
+    "src/translate.js",
+    "src/demo"
   ],
   "include": [
     "src"

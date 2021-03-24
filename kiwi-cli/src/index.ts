@@ -13,6 +13,7 @@ import { extractAll } from './extract/extract';
 import { update } from './update'
 import { sameExcel } from './excel-same'
 import { exportRepeatWords } from './deduplication'
+import JsonScanner from './json'
 import * as ora from 'ora';
 import * as chalk from 'chalk';
 const leven = require('leven')
@@ -46,6 +47,7 @@ program
   .option('--compare [originFile] [targetFile]', '对比导出 key 差异')
   .option('--same [originFile] [targetFile] [targetFileValueIndex] [targetFileKeyIndex]', '同步excel中相同内容')
   .option('--update [file] [lang]', '更新语言包')
+  .option('--json [file]', 'json 数据中文扫描')
   .option('--dedup', '提取重复文案')
   .option('--sync', '同步各种语言的文案')
   .option('--mock', '使用 Google 翻译')
@@ -89,13 +91,30 @@ if (program.compare) {
   });
 }
 
+if (program.json) {
+  spining('JSON 文件中文文本扫描', () => {
+    if (program.json === true) {
+      console.log('请按格式输入：--json originFile');
+    } else {
+      const [targetFile, ...rest] = program.args
+      console.log('args-----', program.args, program.json)
+      if (program.args[0] && !program.args[1]) {
+        return console.log(chalk.red(`请按格式输入：--json [originFile] [lang]`))
+      }
+      JsonScanner(program.json, ...program.args);
+    }
+  })
+}
+
+
 if (program.same) {
   spining('excel 相同内容同步', () => {
     if (program.same === true || program.args.length === 0) {
       console.log('请按格式输入：--same originFile targetFile [targetFileValueIndex] [targetFileKeyIndex]');
     } else if (program.args) {
-      console.log('args-----', program.args)
-      sameExcel(program.same, program.args[0], program.args[1]);
+      const [targetFile, ...rest] = program.args
+      console.log('args-----', program.args, program.same)
+      sameExcel(program.same, targetFile, ...rest);
     }
   })
 }

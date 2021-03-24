@@ -23,21 +23,20 @@ function readSheetData (filename, index = 0, type?, keyIndex = 1, valueIndex = 2
 
 // 导出文件 key 值 对比
 // 在目标表格中查找与源表格中中文内容 value 值相同的 key, 将对应的英文同步到源表格中
-function sameExcel(originFile: string, targetFile: string, moreParams?: any) {
+function sameExcel(originFile: string, targetFile: string, ...restParams: any) {
   // 目标文件 value 对应列的序列号，和 key 对应的序列号
   // 目标文件是以中文为 key, 获取其对应的其他语言值
-  const [valueIndex = 2, keyIndex = 1] = arguments;
+  const [valueIndex = 2, keyIndex = 1] = restParams;
   const originData = readSheetData(originFile) as any[]
   const targetData = readSheetData(targetFile, 0, 'obj', keyIndex, valueIndex)
+  console.log('target', targetData)
+  console.log('value key index', valueIndex, keyIndex)
   // 对比后数据结果
   // 默认第二列为中文 第三列为英文，对比中文值，获取其对应的英文值，必同步到源表格中
   const data = [
     [`${originFile} key`, `中文`, '英文'],
   ]
-  let count = 0
   originData.forEach(item => {
-    if (count < 5) { console.log('origin', item, targetData[item[1]]) }
-    count++
     if (targetData[item[1]]) {
       data.push([item[0], item[1], targetData[item[1]]])
     }
