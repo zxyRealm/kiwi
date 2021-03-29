@@ -144,7 +144,6 @@ function matchTsStringLiteralText (node, code, matches, fileName, isJSON, startI
       };
 
       if (isJSON && /^(\{\{).*(\}\})$/.test(text)) {
-        console.log('is JSON -------')
         matches.push(...findTextInTs(text, fileName, isJSON, start + 1))
       } else {
         matches.push({

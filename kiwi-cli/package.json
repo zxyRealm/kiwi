@@ -47,6 +47,7 @@
     "node-xlsx": "^0.15.0",
     "ora": "^3.0.0",
     "prettier": "^2.2.1",
+    "progress": "^2.0.3",
     "qs": "^6.9.4",
     "randomstring": "^1.1.5",
     "request": "^2.88.2",

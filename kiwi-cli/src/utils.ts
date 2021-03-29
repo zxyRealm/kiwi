@@ -17,7 +17,7 @@ import { readFiles } from './extract/file'
 import * as slash from 'slash2';
 import { Translate }from './translate'
 const xlsx = require('node-xlsx').default
-
+const Progress = require('progress')
 const log = console.log
 const chalk = require('chalk')
 
@@ -393,6 +393,16 @@ function prettierFile(fileContent) {
   }
 }
 
+function progressBar (config, name?: string) {
+  const bar = new Progress(`${name || 'extracting'} [:bar] :percent :etas`, {
+    complete: '=',
+    incomplete: ' ',
+    width: 20,
+    ...config
+  })
+  return bar;
+}
+
 export {
   getKiwiDir,
   getLangDir,
@@ -418,5 +428,6 @@ export {
   readProjectFile,
   getProjectDependencies,
   processTaskArray,
-  prettierFile
+  prettierFile,
+  progressBar
 };

@@ -29,8 +29,6 @@ function sameExcel(originFile: string, targetFile: string, ...restParams: any) {
   const [valueIndex = 2, keyIndex = 1] = restParams;
   const originData = readSheetData(originFile) as any[]
   const targetData = readSheetData(targetFile, 0, 'obj', keyIndex, valueIndex)
-  console.log('target', targetData)
-  console.log('value key index', valueIndex, keyIndex)
   // 对比后数据结果
   // 默认第二列为中文 第三列为英文，对比中文值，获取其对应的英文值，必同步到源表格中
   const data = [

@@ -26,12 +26,20 @@ const program = new Command();
  * @param callback
  */
 function spining(text, callback) {
-  console.log('callback', callback)
-  const spinner = ora(`${text}中...`).start();
+  const spinner = ora({
+    text: `${text}中...`,
+    color: 'green'
+  }).start();
+  const timer = setInterval(() => {
+    if (spinner.isSpinning) {
+      spinner.text = `${text}中...`
+    }
+  }, 1000)
   if (callback) {
     callback();
   }
   spinner.succeed(`${text}成功`);
+  clearInterval(timer)
 }
 
 program
@@ -96,10 +104,8 @@ if (program.json) {
     if (program.json === true) {
       console.log('请按格式输入：--json originFile');
     } else {
-      const [targetFile, ...rest] = program.args
-      console.log('args-----', program.args, program.json)
       if (program.args[0] && !program.args[1]) {
-        return console.log(chalk.red(`请按格式输入：--json [originFile] [lang]`))
+        console.log(chalk.red(`请按格式输入：--json [originFile] [lang]`))
       }
       JsonScanner(program.json, ...program.args);
     }

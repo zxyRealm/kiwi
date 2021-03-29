@@ -1,5 +1,5 @@
 import { findTextInTs } from './extract/findChineseText';
-import { getProjectConfig, getProjectVersion, readSheetData, prettierFile } from './utils'
+import { getProjectConfig, getProjectVersion, readSheetData, prettierFile, progressBar } from './utils'
 import { getSpecifiedFiles, readFile, writeFile } from './extract/file';
 import { createXlsxFile } from './export'
 import * as _ from 'lodash';
@@ -9,25 +9,30 @@ const chalk = require('chalk')
 const log = console.log;
 const CONFIG = getProjectConfig();
 
-const sourceString = "{{text(tips(link('查看默认图'),img({src: 'https://uniubi-front.oss-cn-hangzhou.aliyuncs.com/public/scrImage1Url.png', width: '148px', height: '148px'})), br(), '照片比例1:1，大小不得超过2M', br(), '文件格式支持jpg、jpeg、png', br(), '如：公司logo') }}"
-
 // 导出中文 excel
 function exportTextsExcel (allTexts) {
   // 构建 excel 数据结构
-  const sheetData = [
-    ['key', '中文']
-  ]
+  const sheetData = []
+  const keyMap = {}
+  let total = 0
   allTexts.length && allTexts.forEach((file) => {
+    total+= file?.texts?.length || 0
     file.texts && file.texts.forEach((texts) => {
-      sheetData.push([null, texts.text])
+      if (!keyMap[texts.text]) {
+        sheetData.push([null, texts.text])
+        keyMap[texts.text] = 1
+      } else {
+        keyMap[texts.text]++
+      }
     })
   })
   const content = tsvFormatRows(sheetData)
-  console.log('sheet data', sheetData)
   if (sheetData.length > 1) { 
     createXlsxFile(`export-json_${getProjectVersion() || ''}`, sheetData)
     fs.writeFileSync(`export-json.txt`, content);
-    log(chalk.green(`excel 导出成功`))
+    log(chalk.green(`excel 导出成功, 总计 ${total} 条，去重后${sheetData.length - 1} 条`))
+  } else {
+    log(chalk.warn(`未检测到中文文本`))
   }
 }
 
@@ -36,16 +41,16 @@ function updateOtherLangFile (allTexts, dir: string, excelFilePath: string, lang
   // 读取语言 excel 生成 以中文为 key 的 map 对象
   const sheetData = readSheetData(excelFilePath);
   const prePath = dir.replace(/(.*)\/$/, '$1')
-  console.log('pre path', prePath)
   allTexts.forEach((file) => {
-    console.log('file', file)
+    console.log('file', file.file)
     // 更新语言文件的文件名
     const newFileName = `${prePath}/${lang}${file.file.replace(prePath, '')}`
     let code = readFile(file.file)
     file.texts.forEach(text => {
-      code = replaceInJson(code, text, sheetData[text.text])
+      if (sheetData[text.text] !== undefined) {
+        code = replaceInJson(code, text, sheetData[text.text])
+      }
     })
-    console.log('file name', newFileName)
     writeFile(newFileName, prettierFile(code))
   })
   // 
@@ -54,16 +59,15 @@ function updateOtherLangFile (allTexts, dir: string, excelFilePath: string, lang
 // 替换 json 中的中文
 function replaceInJson (code, arg, val) {
   const { start, end } = arg.range
-  let finalReplaceVal = val
-  console.log('replace text', code.slice(start, end))
+  let finalReplaceVal = `'${val}'`
   return `${code.slice(0, start)}${finalReplaceVal}${code.slice(end)}`;
 }
 
 
 // 扫描 json 文件中的中文文案
 function ExtractJsonInText (dir: string, excelFilePath?: string, lang?: string) {
+  const start = Date.now()
   const files = getSpecifiedFiles(dir, CONFIG.include);
-  console.log('files', files)
   const filterFiles = files.filter(file => {
     return file.endsWith('.ts') || file.endsWith('.tsx') || file.endsWith('.vue') || file.endsWith('.js');
   });
@@ -77,7 +81,6 @@ function ExtractJsonInText (dir: string, excelFilePath?: string, lang?: string) 
     if (texts.length > 0) {
       log(chalk.green(`${file} 发现中文文案 ${texts.length} 条`));
     }
-
     return texts.length > 0 ? pre.concat({ file, texts: sortTexts }) : pre;
   }, []);
 
@@ -87,9 +90,9 @@ function ExtractJsonInText (dir: string, excelFilePath?: string, lang?: string) 
   // 将中文导出到 excel
   !excelFilePath && exportTextsExcel(allTexts)
   // 扁平化后的数组列表
-  if (fs.existsSync(excelFilePath)) {
+  if (excelFilePath && fs.existsSync(excelFilePath)) {
     updateOtherLangFile(allTexts, dir, excelFilePath, lang)
-  } else {
+  } else if (excelFilePath) {
     log(chalk.red(`${excelFilePath} 文件不存在`))
   }
 }
