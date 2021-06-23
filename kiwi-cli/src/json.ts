@@ -32,7 +32,7 @@ function exportTextsExcel (allTexts) {
     fs.writeFileSync(`export-json.txt`, content);
     log(chalk.green(`excel 导出成功, 总计 ${total} 条，去重后${sheetData.length - 1} 条`))
   } else {
-    log(chalk.warn(`未检测到中文文本`))
+    log(chalk.yellow(`未检测到中文文本`))
   }
 }
 
@@ -42,7 +42,6 @@ function updateOtherLangFile (allTexts, dir: string, excelFilePath: string, lang
   const sheetData = readSheetData(excelFilePath);
   const prePath = dir.replace(/(.*)\/$/, '$1')
   allTexts.forEach((file) => {
-    console.log('file', file.file)
     // 更新语言文件的文件名
     const newFileName = `${prePath}/${lang}${file.file.replace(prePath, '')}`
     let code = readFile(file.file)
@@ -67,9 +66,10 @@ function replaceInJson (code, arg, val) {
 // 扫描 json 文件中的中文文案
 function ExtractJsonInText (dir: string, excelFilePath?: string, lang?: string) {
   const start = Date.now()
+  // const langPath = `${dir}/${CONFIG.srcLang}`
   const files = getSpecifiedFiles(dir, CONFIG.include);
   const filterFiles = files.filter(file => {
-    return file.endsWith('.ts') || file.endsWith('.tsx') || file.endsWith('.vue') || file.endsWith('.js');
+    return file.endsWith('.ts') || file.endsWith('.tsx') || file.endsWith('.vue') || file.endsWith('.js') || file.endsWith('.json');
   });
   // 目录下所有中文文案
   const allTexts = filterFiles.reduce((pre, file) => {
@@ -85,7 +85,7 @@ function ExtractJsonInText (dir: string, excelFilePath?: string, lang?: string) 
   }, []);
 
   if (!allTexts.length) {
-    return log(chalk.warn(`未发现中文文案`))
+    return log(chalk.yellow(`未发现中文文案`))
   }
   // 将中文导出到 excel
   !excelFilePath && exportTextsExcel(allTexts)

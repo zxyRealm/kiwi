@@ -1,6 +1,7 @@
 const fs = require('fs-extra')
 const path = require('path')
 const xlsx = require('node-xlsx').default
+import { tsvFormatRows } from 'd3-dsv';
 
 // 列宽设置
 const sheetOptions = { '!cols': [{ wch: 30 }, { wch: 50 }, { wch: 30 }] }
@@ -34,14 +35,18 @@ function sameExcel(originFile: string, targetFile: string, ...restParams: any) {
   const data = [
     [`${originFile} key`, `中文`, '英文'],
   ]
+  const noValueList = []
   originData.forEach(item => {
     if (targetData[item[1]]) {
       data.push([item[0], item[1], targetData[item[1]]])
+    } else {
+      noValueList.push(item[1])
     }
   })
   const buffer = xlsx.build([{ data }], sheetOptions)
   const filePath = `./excel-sync.xlsx`
   fs.outputFileSync(filePath, buffer)
+  fs.writeFileSync(`no-value.txt`, noValueList.join('\n\n'));
 }
 
 export { sameExcel }
