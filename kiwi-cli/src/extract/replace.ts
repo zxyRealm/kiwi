@@ -7,12 +7,18 @@ import * as fs from 'fs-extra';
 import * as _ from 'lodash';
 import * as ts from 'typescript';
 import { readFile, writeFile } from './file';
-import { getLangData } from './getLangData';
-import { getProjectConfig, getLangDir, getProjectDependencies, prettierFile } from '../utils';
+import { getLangData, getSuggestLangObj } from './getLangData';
+import { 
+  getProjectConfig,
+  getLangDir,
+  getProjectDependencies,
+  prettierFile,
+  templateTransform
+} from '../utils';
 import * as slash from 'slash2';
 import * as vueCompiler from 'vue-template-compiler'
 const chalk = require('chalk')
-
+const log = console.log
 const CONFIG = getProjectConfig();
 const srcLangDir = getLangDir(CONFIG.srcLang);
 
@@ -44,24 +50,32 @@ export function updateLangFiles(keyValue, text, validateDuplicate, filePath, typ
   filename = srcFiles.join('/').lastIndexOf('.') === -1 ? srcFiles.join('/') : srcFiles.join('/').substring(0, srcFiles.join('/').lastIndexOf('.'))
   fullKey = keyValue.replace('-', '_');
   const targetFilename = !isDefaultType ? filePath : slash(`${srcLangDir}/${filename}.${isTS ? 'ts' : 'js'}`);
-
-  if (!fs.existsSync(targetFilename)) {
+  const allLangs = getSuggestLangObj()
+  // 当前 key: value 不存在时可创建新文件
+  const keyValueIsNot = allLangs[fullKey] === undefined || allLangs[fullKey] !== text
+  if (!fs.existsSync(targetFilename) && keyValueIsNot) {
     fs.outputFileSync(targetFilename, generateNewLangFile(fullKey, text));
     addImportToMainLangFile(filename, lang);
-    console.log(`成功新建语言文件 ${targetFilename}`);
+    log(chalk.green(`成功新建语言文件 ${targetFilename}`));
   } else {
     // 清除 require 缓存，解决手动更新语言文件后再自动抽取，导致之前更新失效的问题
     const mainContent = getLangData(targetFilename);
     const obj = mainContent;
 
     if (Object.keys(obj).length === 0) {
-      console.log(`${filePath} 解析失败，该文件包含的文案无法自动补全`);
+      log(chalk.yellow(`${filePath} 该文件无可替换文案`));
     }
 
     if (validateDuplicate && _.get(obj, fullKey) !== undefined) {
-      console.log(`${targetFilename} 中已存在 key 为 \`${fullKey}\` 的翻译，请重新命名变量`);
+      log(chalk.red(`${targetFilename} 中已存在 key 为 \`${fullKey}\` 的翻译，请重新命名变量`));
       throw new Error('duplicate');
     }
+    
+    if (!keyValueIsNot) return
+    if (allLangs[fullKey] !== text && allLangs[fullKey] !== undefined) {
+      log(chalk.red(`${targetFilename} 已存在 ${fullKey} 的翻译`))
+    }
+
     // \n 会被自动转义成 \\n，这里转回来
     text = text.replace(/\\n/gm, '\n');
     const data = { ...obj, [fullKey]: text }
@@ -204,7 +218,7 @@ function replaceAndUpdate(filePath, arg, val, validateDuplicate) {
   const code = readFile(filePath);
   const isHtmlFile = _.endsWith(filePath, '.html');
   const isVueFile = !!deps.vue || _.endsWith(filePath, '.vue');
-  const isReact = deps.umi || _.endsWith(filePath, '.tsx') || _.endsWith(filePath, '.jsx');
+  const isReact = deps.umi || _.endsWith(filePath, '.tsx') || _.endsWith(filePath, '.jsx') || deps.react;
   val = val.replace(/-/g, '_')
   let newCode = code;
   let finalReplaceText = arg.text;
@@ -241,25 +255,29 @@ function replaceInVue(filePath, arg, val) {
   const code = readFile(filePath)
   // let finalReplaceText = arg.text
   const { start, end } = arg.range
+  const template = CONFIG.jsTemplate || `i18n.t('{{key}}')`
+  const htmlTemplate = CONFIG.htmlTemplate || `$t('{{key}}')`
+  const replacedStr = templateTransform(template, { key: val })
+  const htmlReplacedStr = templateTransform(template, { key: val })
   let finalReplaceVal = val
   switch (arg.type) {
     case 'tempStatic':
-      finalReplaceVal = `$t('${val}')`
+      finalReplaceVal = htmlReplacedStr
       break
     case 'static':
-      finalReplaceVal = `{{\$t('${val}')}}`
+      finalReplaceVal = `{{${htmlReplacedStr}}}`
       break
     case 'template':
-      finalReplaceVal = `\${$t('${val}')}`
+      finalReplaceVal = `\${${htmlReplacedStr}}`
       break
     case 'attrStr':
-      finalReplaceVal = `:${arg.name}="$t('${val}')"`
+      finalReplaceVal = `:${arg.name}="${htmlReplacedStr}"`
       return `${code.slice(0, start - arg.name.length - 2)}${finalReplaceVal}${code.slice(end + 1)}`
     case 'jsStr':
-      finalReplaceVal = `i18n.t('${val}')`
+      finalReplaceVal = replacedStr
       break
     case 'jsTemplate':
-      finalReplaceVal = `\${i18n.t('${val}')}`
+      finalReplaceVal = `\${${replacedStr}}`
       break
   }
   return `${code.slice(0, start)}${finalReplaceVal}${code.slice(end)}`;
@@ -270,7 +288,8 @@ function replaceInJsx(filePath, arg, val, callback) {
   const code = readFile(filePath)
   const { start, end } = arg.range
   let finalReplaceVal = val
-
+  const template = CONFIG.jsTemplate || `intl.formatMessage({ id: '{{key}}' })`
+  const replacedStr = templateTransform(template, { key: val })
   switch(arg.type) {
     case 'jsTemplate': {
       const values = (arg.text?.match(/\$\{(\w+)\}/g) || []).map(key => key.replace(/\$\{(\w+)\}/g, '$1')).join(', ');
@@ -279,19 +298,19 @@ function replaceInJsx(filePath, arg, val, callback) {
       arg.text = arg.text.replace(/\$\{/g,'{')
       // 示例： `姓名${name}, 年龄{age}, 生日${year}` 插值语法中插入值提取 { name, age, year }
       // 差值语法只允许使用直接变量值，不允许使用运算表达式
-      finalReplaceVal = !values ? `intl.formatMessage({ id: '${val}' })` : `intl.formatMessage({ id: '${val}' }, { ${values} })`;
+      finalReplaceVal = !values ? replacedStr : `${replacedStr.slice(0, replacedStr.length - 1)}, { ${values} })`;
       break
     }
     case 'attrStr':
     case 'JsxElement':
     case 'JsxText':
-      finalReplaceVal = `{intl.formatMessage({ id: '${val}' })}`;
+      finalReplaceVal = `{${replacedStr}}`;
       break;
     case 'isRoutes':
       finalReplaceVal = `'${val}'`;
       break;
     default:
-      finalReplaceVal = `intl.formatMessage({ id: '${val}' })`;
+      finalReplaceVal = replacedStr;
     break;
   }
   return `${code.slice(0, start)}${finalReplaceVal}${code.slice(end)}`;

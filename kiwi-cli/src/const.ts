@@ -37,6 +37,8 @@ interface Config {
     importI18N: string;
     exclude?: string | RegExp | (string | RegExp)[];
     include?: string | RegExp | (string | RegExp)[];
+    jsTemplate?: string;
+    htmlTemplate?: string;
   },
   langMap: {},
   zhIndexFile?: string;
@@ -85,7 +87,9 @@ export const PROJECT_CONFIG: Config = {
     prettierConfig: {},
     importI18N: `import i18n from '@/locale';`,
     exclude: ['node_modules'],
-    include: ['src']
+    include: ['src'],
+    jsTemplate: '',
+    htmlTemplate: ''
   },
   langMap: {
     ['en-US']: 'en',

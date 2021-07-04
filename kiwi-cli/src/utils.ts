@@ -355,6 +355,7 @@ interface PackageJSONType {
   dependencies?: any;
   [key: string]: any;
 }
+
 // 获取项目依赖信息 dependencies && devDependencies
 function getProjectDependencies () {
   const packageJSON: PackageJSONType = readProjectFile('package.json')
@@ -363,6 +364,7 @@ function getProjectDependencies () {
     ...packageJSON.dependencies
   }
 }
+
 // 线程式处理异步任务数组
 async function processTaskArray (taskArray) {
   try {
@@ -393,6 +395,7 @@ function prettierFile(fileContent) {
   }
 }
 
+// 进度条
 function progressBar (config, name?: string) {
   const bar = new Progress(`${name || 'extracting'} [:bar] :percent :etas`, {
     complete: '=',
@@ -401,6 +404,18 @@ function progressBar (config, name?: string) {
     ...config
   })
   return bar;
+}
+
+// 模板编译器
+// const name = 'Tom'
+// const templateStr = 'He is {{name}}'
+// => He is Tom
+
+function templateTransform (template, data) {
+  return template.replace(/\{\{[^\{\}]+\}\}/g, (matchStr, index) => {
+    const key = matchStr.replace(/^\{\{([^\{\}]+)\}\}$/, '$1');
+    return data?.[key] === undefined ? matchStr: data[key]
+  })
 }
 
 export {
@@ -429,5 +444,6 @@ export {
   getProjectDependencies,
   processTaskArray,
   prettierFile,
-  progressBar
+  progressBar,
+  templateTransform
 };

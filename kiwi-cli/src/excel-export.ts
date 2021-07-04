@@ -35,7 +35,7 @@ function exportExcel (langDir?: string, lang?: string) {
   // 语言文件名称列表
   const excelList = directory.filter(dir => !/\.[a-zA-Z-_\d]+$/.test(dir))
   dirs.readFiles(langDir, {
-    match: /\.js$/
+    match: /\.(js|ts|json)$/
   }, (error, content, next) => {
       if (error) throw new Error(error)
       next()
